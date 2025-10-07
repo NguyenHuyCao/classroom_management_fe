@@ -1,1 +1,16 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  --bs-primary: #1e40af; // màu chính
+  --bs-info:    #38bdf8; // màu thông tin
+  --bs-body-bg: #f8fafc; // màu nền body
+  --bs-body-color: hsl(222, 47%, 11%); // màu chữ chính
+}
+
+@import "bootstrap/dist/css/bootstrap.min.css";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+body {
+  background:
+    radial-gradient(1200px 600px at 10% -20%, rgba(56,189,248,0.15), transparent 60%),
+    radial-gradient(800px 500px at 120% 10%, rgba(30,64,175,0.15), transparent 55%),
+    var(--bs-body-bg);
+}

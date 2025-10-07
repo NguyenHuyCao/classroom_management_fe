@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="420" height="100" viewBox="0 0 420 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(8,8)">
+    <rect x="0" y="0" width="104" height="64" rx="12" stroke="#1E40AF" stroke-width="6"/>
+    <path d="M20 34 L36 50 L68 22" stroke="#38BDF8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="24" y="72" width="56" height="8" rx="4" fill="#1E40AF"/>
+  </g>
+  <line x1="132" y1="16" x2="132" y2="84" stroke="#E2E8F0" stroke-width="2"/>
+  <g font-family="Inter, Segoe UI, Roboto, Arial" fill="#1E40AF">
+    <text x="152" y="46" font-size="24" font-weight="700" letter-spacing="0.2">Classroom Management</text>
+    <text x="152" y="72" font-size="14" fill="#0F172A">Hệ thống quản lý lớp học</text>
+  </g>
+</svg>

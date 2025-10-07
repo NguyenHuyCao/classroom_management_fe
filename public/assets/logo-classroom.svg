@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background is transparent so it works on light/dark -->
+  <!-- Chalkboard / screen -->
+  <rect x="20" y="36" width="216" height="140" rx="16" stroke="#1E40AF" stroke-width="10"/>
+  <!-- Stand -->
+  <rect x="64" y="188" width="128" height="12" rx="6" fill="#1E40AF"/>
+  <rect x="94" y="202" width="68" height="12" rx="6" fill="#1E40AF"/>
+  <!-- Check mark (management / completion) -->
+  <path d="M88 108 L112 132 L168 84" stroke="#38BDF8" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Students (two dots) -->
+  <circle cx="96" cy="156" r="5" fill="#1E40AF"/>
+  <circle cx="160" cy="156" r="5" fill="#1E40AF"/>
+  <!-- Wordmark (optional, can be hidden) -->
+  <g font-family="Inter, Segoe UI, Roboto, Arial" font-size="18" fill="#1E40AF">
+    <text x="128" y="240" text-anchor="middle" letter-spacing="0.5">Classroom Management</text>
+  </g>
+</svg>

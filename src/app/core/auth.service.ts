@@ -14,28 +14,26 @@ type LoginResponse = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private _loggedIn = signal(false);
-  isLoggedIn = () => this._loggedIn();
+  // private _loggedIn = signal(false);
+  // isLoggedIn = () => this._loggedIn();
 
   constructor(private http: HttpClient) {}
 
   async loginMock(p: LoginPayload) {
     await new Promise((r) => setTimeout(r, 700));
     if (p.username.length >= 3 && p.password.length >= 6) {
-      this._loggedIn.set(true);
-      if (p.remember) localStorage.setItem('token', 'abcadđfadfasdf');
-      return;
+      // this._loggedIn.set(true);
+      // if (p.remember) localStorage.setItem('token', 'abcadđfadfasdf');
+      // return;
     }
     throw new Error('Invalid');
   }
 
   async login(p: LoginPayload) {
-    return this.loginMock(p); 
+    return this.loginMock(p);
   }
 
-  setSession(res: LoginResponse, remember: boolean) {
-  }
+  setSession(res: LoginResponse, remember: boolean) {}
 
-  logout() {
-  }
+  logout() {}
 }

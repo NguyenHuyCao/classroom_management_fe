@@ -1,11 +1,10 @@
 import { Routes, CanActivateFn } from '@angular/router';
 import { Login } from './pages/login/login';
 import { Home } from './pages/home/home';
-import { inject } from '@angular/core';
-import { AuthService } from './core/auth.service';
 import { Shell } from './layout/shell';
+import { ChangePassword } from './pages/change-password/change-password';
 
-const authGuard: CanActivateFn = () => inject(AuthService).isLoggedIn();
+// const authGuard: CanActivateFn = () => inject(AuthService).isLoggedIn();
 
 export const routes: Routes = [
   { path: 'login', component: Login },
@@ -14,7 +13,8 @@ export const routes: Routes = [
     component: Shell,
     children: [
       { path: 'home', component: Home },
-      { path: '', pathMatch: 'full', redirectTo: 'home' },
+      { path: 'change-password', component: ChangePassword },
+      // { path: '', pathMatch: 'full', redirectTo: 'home' },
     ],
   },
   { path: '**', redirectTo: '' },

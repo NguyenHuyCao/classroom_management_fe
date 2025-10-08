@@ -1,0 +1,31 @@
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 24px;
+  border-bottom: 1px solid var(--line);
+}
+.section-title .bullet {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-600);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+}
+.section-title .text {
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+// .section-title-hr {
+//   margin-top: 4px;
+//   margin-bottom: 24px;
+//   border: none;
+//   border-top: 1.5px solid #ccc;
+//   width: 100%;
+// }

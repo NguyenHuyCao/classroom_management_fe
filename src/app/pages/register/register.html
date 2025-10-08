@@ -1,0 +1,198 @@
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-7 col-xl-6">
+      <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4 p-lg-5">
+          <div class="text-center mb-4">
+            <img src="assets/logo-classroom.svg" alt="Logo" width="84" height="84" class="mb-2">
+            <h1 class="h4 text-primary mb-0">Đăng ký tài khoản</h1>
+            <div class="text-secondary">Quản lý lớp học</div>
+          </div>
+
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Loại tài khoản</label>
+              <div class="d-flex gap-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" id="roleStudent" value="student" formControlName="role">
+                  <label class="form-check-label" for="roleStudent">Sinh viên</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" id="roleLecturer" value="lecturer" formControlName="role">
+                  <label class="form-check-label" for="roleLecturer">Giảng viên</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-title">1. Thông tin tài khoản</div>
+            <div class="row g-3" formGroupName="account">
+              <div class="col-md-6">
+                <div class="form-floating">
+                  <input class="form-control" id="fullName" placeholder="Họ và tên" formControlName="fullName">
+                  <label for="fullName"><i class="bi bi-card-text me-2"></i>Họ và tên</label>
+                </div>
+                <div class="text-danger small mt-1" *ngIf="acc.fullName.touched && acc.fullName.invalid">
+                  Vui lòng nhập tối thiểu 3 ký tự.
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="form-floating">
+                  <input class="form-control" id="username" placeholder="Tên đăng nhập" formControlName="username" autocomplete="username">
+                  <label for="username"><i class="bi bi-person me-2"></i>Tên đăng nhập</label>
+                </div>
+                <div class="text-danger small mt-1" *ngIf="acc.username.touched && acc.username.invalid">
+                  Tối thiểu 3 ký tự.
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="form-floating">
+                  <input type="email" class="form-control" id="email" placeholder="Email" formControlName="email" autocomplete="email">
+                  <label for="email"><i class="bi bi-envelope me-2"></i>Email</label>
+                </div>
+                <div class="text-danger small mt-1" *ngIf="acc.email.touched && acc.email.invalid">
+                  Email không hợp lệ.
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="form-floating">
+                  <input class="form-control" id="phone" placeholder="Số điện thoại" formControlName="phone">
+                  <label for="phone"><i class="bi bi-telephone me-2"></i>Số điện thoại</label>
+                </div>
+                <div class="text-danger small mt-1" *ngIf="acc.phone.touched && acc.phone.invalid">
+                  Số điện thoại 9–11 chữ số.
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="input-group">
+                  <div class="form-floating flex-grow-1">
+                    <input [type]="showPwd ? 'text' : 'password'" class="form-control" id="password" placeholder="Mật khẩu" formControlName="password" autocomplete="new-password">
+                    <label for="password"><i class="bi bi-shield-lock me-2"></i>Mật khẩu</label>
+                  </div>
+                  <button type="button" class="btn btn-outline-secondary" (click)="showPwd = !showPwd">
+                    <i class="bi" [ngClass]="showPwd ? 'bi-eye-slash' : 'bi-eye'"></i>
+                  </button>
+                </div>
+                <div class="text-danger small mt-1" *ngIf="acc.password.touched && acc.password.invalid">
+                  Tối thiểu 6 ký tự.
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="input-group">
+                  <div class="form-floating flex-grow-1">
+                    <input [type]="showPwd2 ? 'text' : 'password'" class="form-control" id="confirm" placeholder="Nhập lại mật khẩu" formControlName="confirm" autocomplete="new-password">
+                    <label for="confirm"><i class="bi bi-shield-check me-2"></i>Nhập lại mật khẩu</label>
+                  </div>
+                  <button type="button" class="btn btn-outline-secondary" (click)="showPwd2 = !showPwd2">
+                    <i class="bi" [ngClass]="showPwd2 ? 'bi-eye-slash' : 'bi-eye'"></i>
+                  </button>
+                </div>
+                <div class="text-danger small mt-1" *ngIf="acc.confirm.touched && acc.confirm.errors?.['notSame']">
+                  Mật khẩu xác nhận không khớp.
+                </div>
+              </div>
+            </div>
+
+            <div class="section-title mt-4">2. Thông tin sinh viên</div>
+            <div class="row g-3" formGroupName="student" [class.disabled-section]="form.controls.role.value!=='student'">
+              <div class="col-md-4">
+                <div class="form-floating">
+                  <input class="form-control" id="studentId" placeholder="A70001" formControlName="studentId">
+                  <label for="studentId">Mã sinh viên</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-floating">
+                  <input class="form-control" id="classCode" placeholder="TI40h1" formControlName="classCode">
+                  <label for="classCode">Lớp chuyên ngành</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-floating">
+                  <input class="form-control" id="course" placeholder="Khóa 40" formControlName="course">
+                  <label for="course">Khóa</label>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label">Khoa</label>
+                <select class="form-select" formControlName="faculty">
+                  <option *ngFor="let f of faculties" [value]="f">{{ f }}</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Ngành</label>
+                <select class="form-select" formControlName="major">
+                  <option *ngFor="let m of majors" [value]="m">{{ m }}</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <div class="form-floating">
+                  <input type="number" class="form-control" id="admissionYear" placeholder="2022" formControlName="admissionYear">
+                  <label for="admissionYear">Năm nhập học</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-title mt-4">2. Thông tin giảng viên</div>
+            <div class="row g-3" formGroupName="lecturer" [class.disabled-section]="form.controls.role.value!=='lecturer'">
+              <div class="col-md-4">
+                <div class="form-floating">
+                  <input class="form-control" id="lecturerId" placeholder="GV-001" formControlName="lecturerId">
+                  <label for="lecturerId">Mã giảng viên</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Khoa/Bộ môn</label>
+                <select class="form-select" formControlName="dept">
+                  <option *ngFor="let f of faculties" [value]="f">{{ f }}</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Học hàm/Học vị</label>
+                <select class="form-select" formControlName="title">
+                  <option *ngFor="let t of academicRanks" [value]="t">{{ t }}</option>
+                </select>
+              </div>
+
+              <div class="col-md-4">
+                <div class="form-floating">
+                  <input class="form-control" id="officePhone" placeholder="SĐT cơ quan" formControlName="officePhone">
+                  <label for="officePhone">SĐT cơ quan (tuỳ chọn)</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-floating">
+                  <input type="email" class="form-control" id="workEmail" placeholder="email@univ.edu" formControlName="workEmail">
+                  <label for="workEmail">Email cơ quan (tuỳ chọn)</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-floating">
+                  <input class="form-control" id="officeRoom" placeholder="P203" formControlName="officeRoom">
+                  <label for="officeRoom">Phòng làm việc (tuỳ chọn)</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-danger text-center mt-2" *ngIf="err">{{ err }}</div>
+
+            <div class="d-flex gap-2 mt-4">
+              <a class="btn btn-outline-secondary" routerLink="/login"><i class="bi bi-arrow-left"></i> Quay lại đăng nhập</a>
+              <button class="btn btn-primary ms-auto px-4" type="submit" [disabled]="form.invalid || loading">
+                <span *ngIf="!loading">Đăng ký</span>
+                <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+                <span *ngIf="loading">Đang xử lý...</span>
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

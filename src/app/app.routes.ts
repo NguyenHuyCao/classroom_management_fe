@@ -12,10 +12,10 @@ import { ClassDetail } from './pages/class-detail/class-detail';
 
 export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./pages/login/login').then((m) => m.Login) },
-  // {
-  //   path: 'register',
-  //   loadComponent: () => import('./pages/register/register').then((m) => m.Register),
-  // },
+  {
+    path: 'register',
+    loadComponent: () => import('./pages/register/register').then((m) => m.Register),
+  },
   {
     path: 'forgot',
     loadComponent: () => import('./pages/forgot/forgot').then((m) => m.ForgotPassword),

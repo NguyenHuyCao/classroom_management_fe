@@ -1,0 +1,176 @@
+<app-section-title title="QUẢN LÝ LỚP HỌC (TRONG KỲ)"></app-section-title>
+
+<div class="card-soft p-3 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0">{{ editingId() ? 'Chỉnh sửa lớp' : 'Tạo lớp học mới' }}</h6>
+    <span class="text-muted small" *ngIf="editingId()">ID: {{ editingId() }}</span>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Mã lớp</label>
+        <input class="form-control" formControlName="code" placeholder="VD: CS101-K40A" />
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">Tên lớp</label>
+        <input class="form-control" formControlName="name" placeholder="VD: Nhập môn Khoa học Máy tính - K40A" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Môn học</label>
+        <select class="form-select" formControlName="subject">
+          <option value="">— Chọn môn —</option>
+          <option *ngFor="let s of subjectsRef" [value]="s">{{s}}</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Học kỳ</label>
+        <select class="form-select" formControlName="semester">
+          <option *ngFor="let s of semesters" [value]="s.value">{{s.label}}</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label">Trạng thái</label>
+        <select class="form-select" formControlName="status">
+          <option *ngFor="let st of statuses" [value]="st">{{st}}</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Sĩ số</label>
+        <input type="number" class="form-control" formControlName="size" min="1" max="500" />
+      </div>
+
+      <div class="col-12">
+        <div class="sub-card p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Lịch học</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm" (click)="addSchedule()">
+              <i class="bi bi-plus"></i> Thêm lịch
+            </button>
+          </div>
+
+          <div class="row g-2 align-items-end" formArrayName="schedule"
+               *ngFor="let sch of scheduleArray.controls; let i = index">
+            <div [formGroupName]="i" class="row g-2 align-items-end">
+              <div class="col-md-2">
+                <label class="form-label mb-1">Thứ</label>
+                <select class="form-select" formControlName="day">
+                  <option *ngFor="let w of weekdays" [value]="w.value">{{w.label}}</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label mb-1">Bắt đầu</label>
+                <input type="time" class="form-control" formControlName="start" />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label mb-1">Kết thúc</label>
+                <input type="time" class="form-control" formControlName="end" />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label mb-1">Phòng</label>
+                <input class="form-control" formControlName="room" placeholder="P203 / Online" />
+              </div>
+              <div class="col-md-2">
+                <button type="button" class="btn btn-outline-danger w-100"
+                        (click)="removeSchedule(i)" [disabled]="scheduleArray.length<=1">
+                  <i class="bi bi-trash"></i> Xóa
+                </button>
+              </div>
+            </div>
+            <div class="mb-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="sub-card p-3">
+          <h6 class="mb-2">Sinh viên</h6>
+          <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+              <label class="form-label mb-1">Thêm nhanh MSSV/Email</label>
+              <div class="input-group">
+                <input class="form-control" formControlName="studentsInput" placeholder="VD: SV0123 hoặc email" />
+                <button type="button" class="btn btn-outline-primary" (click)="addStudentFromInput()">
+                  Thêm
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="chips mt-2" *ngIf="studentsArray.length">
+            <span class="chip" *ngFor="let s of studentsArray.controls; let i = index">
+              {{ s.value }}
+              <button type="button" class="chip-remove" (click)="removeStudent(i)">&times;</button>
+            </span>
+          </div>
+          <div class="text-muted small" *ngIf="!studentsArray.length">Chưa có sinh viên nào được thêm.</div>
+        </div>
+      </div>
+
+      <div class="col-12 text-end">
+        <button type="button" class="btn btn-outline-secondary me-2" (click)="startCreate()">Làm mới</button>
+        <button type="submit" class="btn btn-primary">
+          {{ editingId() ? 'Cập nhật lớp' : 'Tạo lớp' }}
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div class="card-soft p-3">
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle program-table">
+      <thead>
+        <tr>
+          <th style="width: 120px">Mã lớp</th>
+          <th>Tên lớp</th>
+          <th style="width: 100px">Môn</th>
+          <th style="width: 110px">Học kỳ</th>
+          <th style="width: 110px">Trạng thái</th>
+          <th style="width: 80px">Sĩ số</th>
+          <th style="width: 220px">Lịch học</th>
+          <th style="width: 120px">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of paged()">
+          <td><span class="fw-600">{{ c.code }}</span></td>
+          <td>{{ c.name }}</td>
+          <td>{{ c.subject }}</td>
+          <td><span class="badge bg-sem">{{ c.semester }}</span></td>
+          <td>
+            <span class="badge" [ngClass]="{'bg-online': c.status==='Online', 'bg-offline': c.status==='Offline'}">
+              {{ c.status }}
+            </span>
+          </td>
+          <td>{{ c.size }}</td>
+          <td>
+            <div class="sch" *ngFor="let s of c.schedule">
+              <i class="bi bi-calendar2-week me-1"></i>
+              Thứ {{ s.day }} • {{ s.start }}–{{ s.end }} • {{ s.room }}
+            </div>
+          </td>
+          <td class="text-center">
+            <button class="btn btn-light btn-sm me-1" (click)="startEdit(c)"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-light btn-sm" (click)="delete(c)"><i class="bi bi-trash"></i></button>
+          </td>
+        </tr>
+        <tr *ngIf="!paged().length">
+          <td colspan="8" class="text-center text-muted">Không có lớp phù hợp bộ lọc.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="text-muted small">
+      Tổng: {{ filtered().length }} lớp • Trang {{ pageIndex() }}/{{ totalPages() }}
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex()-1)">&laquo;</button>
+      <button class="btn btn-outline-secondary btn-sm" disabled>{{ pageIndex() }}</button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex()+1)">&raquo;</button>
+    </div>
+  </div>
+</div>

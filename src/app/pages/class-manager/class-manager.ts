@@ -36,7 +36,7 @@ interface ClassItem {
 @Component({
   selector: 'app-class-manager',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SectionTitleComponent],
+  imports: [SectionTitleComponent, CommonModule, ReactiveFormsModule],
   templateUrl: './class-manager.html',
   styleUrls: ['./class-manager.scss'],
 })
@@ -79,7 +79,7 @@ export class ClassManager {
   pageIndex = signal<number>(1);
 
   form: FormGroup;
-  editingId = signal<string | null>(null); 
+  editingId = signal<string | null>(null);
 
   semesters: { label: string; value: Semester }[] = [
     { label: 'Học kỳ 1', value: 'HK1' },

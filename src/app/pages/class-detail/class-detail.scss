@@ -1,0 +1,51 @@
+
+.card-soft {
+  background: #fff;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(16,24,40,.04);
+}
+
+.section-title {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.program-table thead th {
+  background: #f1f5f9;
+  white-space: nowrap;
+}
+.program-table td, .program-table th {
+  vertical-align: middle;
+}
+
+.bg-online { background: #16a34a !important; }
+.bg-offline { background: #64748b !important; }
+.bg-sem { background: #2563eb !important; color: #fff; }
+
+.lecturer .name { font-size: 16px; }
+.muted { color: #64748b; }
+
+.progress {
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-bar {
+  background: #2563eb;
+  height: 100%;
+  line-height: 10px;
+  font-size: 10px;
+  color: #fff;
+  text-align: right;
+  padding-right: 6px;
+}
+
+@media print {
+  .actions, a.btn, button.btn { display: none !important; }
+  .card-soft { box-shadow: none; border: 1px solid #e5e7eb; }
+}

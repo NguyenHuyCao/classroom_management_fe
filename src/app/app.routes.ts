@@ -6,6 +6,7 @@ import { ChangePassword } from './pages/change-password/change-password';
 import { Program } from './pages/program/program';
 import { ClassManager } from './pages/class-manager/class-manager';
 import { ClassCatalog } from './pages/class-catalog/class-catalog';
+import { ClassDetail } from './pages/class-detail/class-detail';
 
 // const authGuard: CanActivateFn = () => inject(AuthService).isLoggedIn();
 
@@ -20,6 +21,7 @@ export const routes: Routes = [
       { path: 'program', component: Program },
       { path: 'class-manager', component: ClassManager },
       { path: 'class-catalog', component: ClassCatalog },
+      { path: 'class-detail/:id', component: ClassDetail },
       { path: '', pathMatch: 'full', redirectTo: 'home' },
     ],
   },

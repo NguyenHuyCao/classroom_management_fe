@@ -1,6 +1,6 @@
 import { Component, computed, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SectionTitleComponent } from '../../components/section-title.component';
+import { SectionTitleComponent } from '../../components/title/section-title.component';
 
 type Status = 'Online' | 'Offline';
 type Semester = 'HK1' | 'HK2' | 'HK He';

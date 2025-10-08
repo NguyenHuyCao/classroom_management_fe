@@ -1,7 +1,8 @@
 import { Component, signal, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { SectionTitleComponent } from '../../components/section-title.component';
+import { SectionTitleComponent } from '../../components/title/section-title.component';
+import { ConfirmDialog } from '../../components/confirm/confirm-dialog';
 
 type Status = 'Online' | 'Offline';
 type Semester = 'HK1' | 'HK2' | 'HK He';
@@ -29,7 +30,7 @@ interface IClassDetail {
   semester: Semester;
   status: Status;
   capacity: number; // Sĩ số tối đa
-  students: { id: string; name: string; email?: string, phone: string, maiger: string }[];
+  students: { id: string; name: string; email?: string; phone: string; maiger: string }[];
   schedule: ScheduleItem[];
   description?: string; // mô tả
   createdAt: string; // ISO
@@ -40,7 +41,7 @@ interface IClassDetail {
 @Component({
   selector: 'app-class-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, SectionTitleComponent],
+  imports: [CommonModule, RouterModule, SectionTitleComponent, ConfirmDialog],
   templateUrl: './class-detail.html',
   styleUrls: ['./class-detail.scss'],
 })

@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { SectionTitleComponent } from '../../components/section-title.component';
+import { SectionTitleComponent } from '../../components/title/section-title.component';
 
 @Component({
   selector: 'app-home',

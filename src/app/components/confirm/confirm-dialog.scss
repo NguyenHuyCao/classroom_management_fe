@@ -1,0 +1,36 @@
+/* Overlay primitive (không cần JS của Bootstrap) */
+.cdk-container {
+  position: fixed; inset: 0; z-index: 1050;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.cdk-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(1px);
+}
+
+.cdk-panel {
+  position: relative;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 32px rgba(2,6,23,.15);
+  width: min(520px, calc(100vw - 32px));
+  padding: 16px;
+  z-index: 1051;
+  animation: fadeIn .12s ease-out both;
+}
+
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.panel-body { color: #0f172a; padding: 8px 0 12px; }
+.panel-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

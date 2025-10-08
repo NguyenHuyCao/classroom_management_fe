@@ -5,6 +5,7 @@ import { Shell } from './layout/shell';
 import { ChangePassword } from './pages/change-password/change-password';
 import { Program } from './pages/program/program';
 import { ClassManager } from './pages/class-manager/class-manager';
+import { ClassCatalog } from './pages/class-catalog/class-catalog';
 
 // const authGuard: CanActivateFn = () => inject(AuthService).isLoggedIn();
 
@@ -18,6 +19,7 @@ export const routes: Routes = [
       { path: 'change-password', component: ChangePassword },
       { path: 'program', component: Program },
       { path: 'class-manager', component: ClassManager },
+      { path: 'class-catalog', component: ClassCatalog },
       { path: '', pathMatch: 'full', redirectTo: 'home' },
     ],
   },

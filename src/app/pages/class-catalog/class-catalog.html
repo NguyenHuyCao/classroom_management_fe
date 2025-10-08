@@ -1,0 +1,145 @@
+<app-section-title title="DANH SÁCH LỚP HỌC (TOÀN NĂM)"></app-section-title>
+
+<div class="card-soft p-3 mb-3">
+  <div class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label mb-1">Tìm kiếm (mã / tên lớp / môn / giảng viên)</label>
+      <input class="form-control" placeholder="VD: CS101, ML113, Nguyễn Văn A..."
+            (input)="onSearch($event)" />
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label mb-1">Năm</label>
+      <select class="form-select" (change)="onYear($event)">
+        <option value="ALL">Tất cả</option>
+        <option *ngFor="let y of years()" [value]="y">{{ y }}</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label mb-1">Học kỳ</label>
+      <select class="form-select" (change)="onSemester($event)">
+        <option value="ALL">Tất cả</option>
+        <option value="HK1">Học kỳ 1</option>
+        <option value="HK2">Học kỳ 2</option>
+        <option value="HK He">Học kỳ Hè</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label mb-1">Giảng viên</label>
+      <select class="form-select" (change)="onLecturer($event)">
+        <option value="ALL">Tất cả</option>
+        <option *ngFor="let l of lecturers()" [value]="l">{{ l }}</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label mb-1">Trạng thái</label>
+      <select class="form-select" (change)="onStatus($event)">
+        <option value="ALL">Tất cả</option>
+        <option value="Online">Online</option>
+        <option value="Offline">Offline</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <div class="col-md-2">
+      <label class="form-label mb-1">Kích thước trang</label>
+      <select class="form-select" (change)="onPageSize($event)">
+        <option [selected]="pageSize()==10">10</option>
+        <option [selected]="pageSize()==20">20</option>
+        <option [selected]="pageSize()==50">50</option>
+      </select>
+    </div>
+    <div class="col-md-10 text-md-end d-flex gap-2 justify-content-md-end align-items-end">
+      <button class="btn btn-outline-secondary" (click)="exportCSV()">
+        <i class="bi bi-download"></i> Xuất CSV
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="stat card-soft p-3">
+      <div class="label">Tổng số lớp</div>
+      <div class="value">{{ statTotal() }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat card-soft p-3">
+      <div class="label">Tổng số sinh viên</div>
+      <div class="value">{{ statStudents() }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat card-soft p-3">
+      <div class="label">Online</div>
+      <div class="value text-success">{{ statOnline() }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat card-soft p-3">
+      <div class="label">Offline</div>
+      <div class="value text-muted">{{ statOffline() }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card-soft p-3">
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle program-table">
+      <thead>
+        <tr>
+          <th (click)="toggleSort('createdAt')" class="sortable">Ngày tạo</th>
+          <th (click)="toggleSort('code')" class="sortable">Mã lớp</th>
+          <th (click)="toggleSort('name')" class="sortable">Tên lớp</th>
+          <th (click)="toggleSort('subject')" class="sortable" style="width: 110px">Môn</th>
+          <th (click)="toggleSort('lecturer')" class="sortable" style="width: 170px">Giảng viên</th>
+          <th (click)="toggleSort('semester')" class="sortable" style="width: 110px">Học kỳ</th>
+          <th (click)="toggleSort('status')" class="sortable" style="width: 110px">Trạng thái</th>
+          <th (click)="toggleSort('size')" class="sortable" style="width: 80px">Sĩ số</th>
+          <th style="width: 260px">Lịch học</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of paged()">
+          <td>{{ r.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+          <td class="fw-600">{{ r.code }}</td>
+          <td>{{ r.name }}</td>
+          <td>{{ r.subject }}</td>
+          <td>{{ r.lecturer }}</td>
+          <td><span class="badge bg-sem">{{ r.semester }}</span></td>
+          <td>
+            <span class="badge" [ngClass]="{'bg-online': r.status==='Online', 'bg-offline': r.status==='Offline'}">
+              {{ r.status }}
+            </span>
+          </td>
+          <td>{{ r.size }}</td>
+          <td>
+            <div class="sch" *ngFor="let s of r.schedule">
+              <i class="bi bi-calendar2-week me-1"></i>
+              Thứ {{ s.day }} • {{ s.start }}–{{ s.end }} • {{ s.room }}
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="!paged().length">
+          <td colspan="9" class="text-center text-muted">Không có lớp phù hợp bộ lọc.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="text-muted small">
+      Tổng: {{ filtered().length }} lớp • Trang {{ pageIndex() }}/{{ totalPages() }}
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex()-1)">&laquo;</button>
+      <button class="btn btn-outline-secondary btn-sm" disabled>{{ pageIndex() }}</button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex()+1)">&raquo;</button>
+    </div>
+  </div>
+</div>

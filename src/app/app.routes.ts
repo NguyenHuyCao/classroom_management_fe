@@ -1,8 +1,9 @@
-import { Routes, CanActivateFn } from '@angular/router';
+import { Routes } from '@angular/router';
 import { Login } from './pages/login/login';
 import { Home } from './pages/home/home';
 import { Shell } from './layout/shell';
 import { ChangePassword } from './pages/change-password/change-password';
+import { Program } from './pages/program/program';
 
 // const authGuard: CanActivateFn = () => inject(AuthService).isLoggedIn();
 
@@ -14,7 +15,8 @@ export const routes: Routes = [
     children: [
       { path: 'home', component: Home },
       { path: 'change-password', component: ChangePassword },
-      // { path: '', pathMatch: 'full', redirectTo: 'home' },
+      { path: 'program', component: Program },
+      { path: '', pathMatch: 'full', redirectTo: 'home' },
     ],
   },
   { path: '**', redirectTo: '' },

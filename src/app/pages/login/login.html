@@ -22,7 +22,7 @@
             <div class="mb-3 input-group">
               <div class="form-floating flex-grow-1">
                 <input [type]="showPwd() ? 'text' : 'password'" class="form-control" id="password"
-                       placeholder="password" formControlName="password" autocomplete="current-password">
+                      placeholder="password" formControlName="password" autocomplete="current-password">
                 <label for="password"><i class="bi bi-shield-lock me-2"></i>Mật khẩu</label>
               </div>
               <button type="button" class="btn btn-outline-secondary" (click)="showPwd.set(!showPwd())"
@@ -42,10 +42,14 @@
               <a class="link-primary text-decoration-none cursor-pointer" routerLink="/forgot">Quên mật khẩu?</a>
             </div>
 
-            <button class="btn btn-primary w-100 py-2" [disabled]="form.invalid || loading()" type="submit">
+            <button class="btn btn-primary w-100 py-2 mb-2" [disabled]="form.invalid || loading()" type="submit">
               <span *ngIf="!loading()">Đăng nhập</span>
               <span *ngIf="loading()" class="spinner-border spinner-border-sm me-2" role="status"></span>
               <span *ngIf="loading()">Đang xử lý...</span>
+            </button>
+
+            <button class="btn btn-outline-primary w-100 py-2" type="button" routerLink="/register">
+              <i class="bi bi-person-plus me-2"></i>Đăng ký tài khoản
             </button>
 
             <div class="text-danger text-center mt-3" *ngIf="err()">{{ err() }}</div>

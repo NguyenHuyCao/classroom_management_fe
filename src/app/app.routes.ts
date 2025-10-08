@@ -11,7 +11,15 @@ import { ClassDetail } from './pages/class-detail/class-detail';
 // const authGuard: CanActivateFn = () => inject(AuthService).isLoggedIn();
 
 export const routes: Routes = [
-  { path: 'login', component: Login },
+  { path: 'login', loadComponent: () => import('./pages/login/login').then((m) => m.Login) },
+  // {
+  //   path: 'register',
+  //   loadComponent: () => import('./pages/register/register').then((m) => m.Register),
+  // },
+  {
+    path: 'forgot',
+    loadComponent: () => import('./pages/forgot/forgot').then((m) => m.ForgotPassword),
+  },
   {
     path: '',
     component: Shell,

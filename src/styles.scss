@@ -22,7 +22,7 @@
 }
 html,
 body {
-  height: 100%;
+  // height: 100%;
 }
 body {
   margin: 0;
@@ -296,4 +296,46 @@ body.sidebar-collapsed .nav-item i {
   margin-top: 12px;
   font-weight: 600;
   text-transform: uppercase;
+}
+
+/* Header cố định và nổi trên mọi thứ (cao hơn backdrop = 1040 của Bootstrap) */
+.app-navbar {
+  position: fixed;      /* thay vì rely vào .fixed-top của BS nếu bạn override nhiều */
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1065;        /* hoặc 1100 cho chắc */
+}
+
+/* Bù khoảng trống cho phần nội dung bên dưới header */
+.app-shell {
+  /* Trước đây bạn tính min-height trừ header.
+     Với header fixed, chỉ cần đẩy nội dung xuống bằng margin-top/padding-top */
+  margin-top: var(--header-h);
+  min-height: calc(100dvh - var(--header-h));
+}
+
+/* Sidenav sticky vẫn canh dưới header */
+.sidenav {
+  position: sticky;
+  top: var(--header-h);
+}
+
+/* Mobile offcanvas: trượt từ dưới header, không che header */
+@media (max-width: 991.98px) {
+  #appSidenavOffcanvas {
+    top: var(--header-h);
+    height: calc(100dvh - var(--header-h));
+  }
+  /* Backdrop của offcanvas cũng bắt đầu dưới header */
+  .offcanvas-backdrop {
+    top: var(--header-h);
+    height: calc(100dvh - var(--header-h));
+  }
+}
+
+/* Phòng trường hợp lớp con tạo stacking context che header */
+.app-main {
+  position: relative;
+  z-index: 1;
 }

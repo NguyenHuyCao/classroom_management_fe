@@ -16,12 +16,12 @@ export class ConfirmDialog {
   @Input() message = 'Bạn có chắc chắn muốn thực hiện hành động này?';
   @Input() confirmText = 'Đồng ý';
   @Input() cancelText = 'Hủy';
-  @Input() tone: Tone = 'primary'; // ảnh hưởng màu nút confirm
+  @Input() tone: Tone = 'primary';
   @Input() closeOnBackdrop = true;
 
   @Output() confirmed = new EventEmitter<void>();
   @Output() canceled = new EventEmitter<void>();
-  @Output() closed = new EventEmitter<void>(); // bất cứ cách đóng nào
+  @Output() closed = new EventEmitter<void>();
 
   get confirmBtnClass() {
     return {

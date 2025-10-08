@@ -1,9 +1,7 @@
 <app-section-title title="THÔNG TIN LỚP HỌC"></app-section-title>
 
 <div *ngIf="loading()" class="card-soft p-3 mb-3">Đang tải thông tin lớp học...</div>
-<div *ngIf="error()" class="card-soft p-3 mb-3 text-danger">
-  {{ error() }}
-</div>
+<div *ngIf="error()" class="card-soft p-3 mb-3 text-danger">{{ error() }}</div>
 
 <div *ngIf="detail() as d">
   <div class="card-soft p-3 mb-3 mt-4">
@@ -12,41 +10,25 @@
         <div class="text-muted small">Mã lớp</div>
         <div class="h5 mb-1 d-flex align-items-center gap-2">
           <span class="fw-700">{{ d.code }}</span>
-          <button class="btn btn-light btn-sm" (click)="copyCode()" title="Sao chép mã lớp">
-            <i class="bi bi-clipboard"></i>
-          </button>
+          <button class="btn btn-light btn" (click)="copyCode()" title="Sao chép mã lớp"><i class="bi bi-clipboard"></i></button>
         </div>
         <div class="h6 mb-0">{{ d.name }}</div>
       </div>
 
       <div class="d-flex gap-2 flex-wrap">
         <span class="badge bg-sem">{{ d.semester }}</span>
-        <span
-          class="badge"
-          [ngClass]="{ 'bg-online': d.status === 'Online', 'bg-offline': d.status === 'Offline' }"
-          >{{ d.status }}</span
-        >
+        <span class="badge" [ngClass]="{ 'bg-online': d.status === 'Online', 'bg-offline': d.status === 'Offline' }">{{ d.status }}</span>
         <span class="badge bg-light text-dark">Năm {{ d.year }}</span>
         <span class="badge bg-light text-dark">Môn {{ d.subject }}</span>
-        <span class="badge bg-light text-dark"
-          >Cập nhật: {{ d.updatedAt | date : 'dd/MM/yyyy HH:mm' }}</span
-        >
+        <span class="badge bg-light text-dark">Cập nhật: {{ d.updatedAt | date : 'dd/MM/yyyy HH:mm' }}</span>
       </div>
     </div>
 
     <div class="actions mt-3 d-flex flex-wrap gap-2">
-      <a class="btn btn-outline-secondary" [routerLink]="['/class-catalog']"
-        ><i class="bi bi-arrow-left"></i> Quay lại danh sách</a
-      >
-      <button class="btn btn-outline-secondary" (click)="printPage()">
-        <i class="bi bi-printer"></i> In
-      </button>
-      <button class="btn btn-outline-secondary" (click)="exportStudentsCSV()">
-        <i class="bi bi-download"></i> Xuất SV CSV
-      </button>
-      <a class="btn btn-primary" [routerLink]="['/class-manager']" [queryParams]="{ edit: d.id }">
-        <i class="bi bi-pencil"></i> Chỉnh sửa lớp
-      </a>
+      <a class="btn btn-outline-secondary" [routerLink]="['/class-catalog']"><i class="bi bi-arrow-left"></i> Quay lại danh sách</a>
+      <button class="btn btn-outline-secondary" (click)="printPage()"><i class="bi bi-printer"></i> In</button>
+      <button class="btn btn-outline-secondary" (click)="exportStudentsCSV()"><i class="bi bi-download"></i> Xuất SV CSV</button>
+      <a class="btn btn-primary" [routerLink]="['/class-manager']" [queryParams]="{ edit: d.id }"><i class="bi bi-pencil"></i> Chỉnh sửa lớp</a>
     </div>
   </div>
 
@@ -57,12 +39,8 @@
         <div class="lecturer">
           <div class="name fw-600">{{ d.lecturer.name }}</div>
           <div class="muted" *ngIf="d.lecturer.dept">Bộ môn/Khoa: {{ d.lecturer.dept }}</div>
-          <div class="muted" *ngIf="d.lecturer.email">
-            <i class="bi bi-envelope me-1"></i>{{ d.lecturer.email }}
-          </div>
-          <div class="muted" *ngIf="d.lecturer.phone">
-            <i class="bi bi-telephone me-1"></i>{{ d.lecturer.phone }}
-          </div>
+          <div class="muted" *ngIf="d.lecturer.email"><i class="bi bi-envelope me-1"></i>{{ d.lecturer.email }}</div>
+          <div class="muted" *ngIf="d.lecturer.phone"><i class="bi bi-telephone me-1"></i>{{ d.lecturer.phone }}</div>
         </div>
       </div>
     </div>
@@ -74,13 +52,7 @@
           <div class="h3 mb-0">{{ enrolledCount() }}</div>
           <div class="text-muted">/ {{ capacity() }} sinh viên</div>
         </div>
-        <div
-          class="progress"
-          role="progressbar"
-          [attr.aria-valuenow]="progressPct()"
-          aria-valuemin="0"
-          aria-valuemax="100"
-        >
+        <div class="progress" role="progressbar" [attr.aria-valuenow]="progressPct()" aria-valuemin="0" aria-valuemax="100">
           <div class="progress-bar" [style.width.%]="progressPct()">{{ progressPct() }}%</div>
         </div>
         <div class="text-muted small mt-2">Tạo ngày {{ d.createdAt | date : 'dd/MM/yyyy' }}</div>
@@ -90,37 +62,29 @@
     <div class="col-md-4">
       <div class="card-soft p-3 h-100">
         <div class="section-title">Địa điểm / Hình thức</div>
-        <div class="muted mb-1" *ngIf="d.status === 'Online'">
-          Hình thức: <span class="fw-600">Online</span>
-        </div>
-        <div class="muted mb-1" *ngIf="d.status === 'Offline'">
-          Hình thức: <span class="fw-600">Offline (tập trung)</span>
-        </div>
+        <div class="muted mb-1" *ngIf="d.status === 'Online'">Hình thức: <span class="fw-600">Online</span></div>
+        <div class="muted mb-1" *ngIf="d.status === 'Offline'">Hình thức: <span class="fw-600">Offline (tập trung)</span></div>
         <div class="muted" *ngIf="d.locationNote">{{ d.locationNote }}</div>
       </div>
     </div>
   </div>
 
-  <div class="card-soft p-3 mb-3 ">
+  <div class="card-soft p-3 mb-3">
     <div class="section-title mb-2">Lịch học</div>
     <div class="table-responsive">
       <table class="table table-bordered align-middle program-table text-center">
         <thead>
           <tr>
-            <th style="width: 120px">Thứ</th>
-            <th style="width: 160px">Bắt đầu</th>
-            <th style="width: 160px">Kết thúc</th>
+            <th style="width:120px">Thứ</th>
+            <th style="width:160px">Bắt đầu</th>
+            <th style="width:160px">Kết thúc</th>
             <th>Phòng</th>
             <th>Link</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let s of d.schedule">
-            <td>Thứ {{ s.day }}</td>
-            <td>{{ s.start }}</td>
-            <td>{{ s.end }}</td>
-            <td>{{ s.room }}</td>
-            <td>{{ s.link }}</td>
+            <td>Thứ {{ s.day }}</td><td>{{ s.start }}</td><td>{{ s.end }}</td><td>{{ s.room }}</td><td>{{ s.link }}</td>
           </tr>
         </tbody>
       </table>
@@ -128,14 +92,38 @@
   </div>
 
   <div class="card-soft p-3 mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
       <div class="section-title mb-0">Danh sách sinh viên</div>
-      <div class="text-muted small">Tổng: {{ d.students.length }}</div>
+      <div class="text-muted small">Tổng: {{ studentsTotal() }}</div>
     </div>
+
+    <div class="row g-2 mb-2 mt-2 mb-3">
+      <div class="col-6 col-md-2">
+        <input class="form-control form-control" placeholder="Tìm MSSV"
+              [value]="searchId()" (input)="onSearchId($event)" />
+      </div>
+      <div class="col-6 col-md-3">
+        <input class="form-control form-control" placeholder="Tìm họ và tên"
+              [value]="searchName()" (input)="onSearchName($event)" />
+      </div>
+      <div class="col-6 col-md-2">
+        <input class="form-control form-control" placeholder="Tìm SĐT"
+              [value]="searchPhone()" (input)="onSearchPhone($event)" />
+      </div>
+      <div class="col-6 col-md-3">
+        <input class="form-control form-control" placeholder="Tìm Email"
+              [value]="searchEmail()" (input)="onSearchEmail($event)" />
+      </div>
+      <div class="col-6 col-md-auto d-flex gap-2">
+        <button class="btn-primary btn btn " (click)="clearStudentFilters()">Tìm kiếm</button>
+        <button class="btn-danger btn btn" (click)="clearStudentFilters()">Xóa lọc</button>
+      </div>
+    </div>
+
     <div class="table-responsive">
       <table class="table table-bordered align-middle program-table text-center">
-        <thead class="">
-          <tr >
+        <thead>
+          <tr>
             <th>MSSV</th>
             <th>Họ và tên</th>
             <th>Số điện thoại</th>
@@ -145,18 +133,38 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of d.students">
+          <tr *ngFor="let s of studentsPaged()">
             <td class="fw-600">{{ s.id }}</td>
-            <td>{{ s.name }}</td>
+            <td class="text-start">{{ s.name }}</td>
             <td>{{ s.phone }}</td>
-            <td>{{ s.email || '—' }}</td>
-            <td>{{ s.maiger }}</td>
+            <td class="text-start">{{ s.email || '—' }}</td>
+            <td class="text-start">{{ s.maiger }}</td>
             <td class="d-flex gap-2 justify-content-center">
-              <button class="btn btn-danger">Xoá</button>
+              <button class="btn btn-danger btn" (click)="askDeleteStudent(s)">Xoá</button>
+              
             </td>
+          </tr>
+          <tr *ngIf="!studentsPaged().length">
+            <td colspan="6" class="text-muted text-center">Không có dữ liệu phù hợp bộ lọc.</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-2">
+      <div class="text-muted small">
+        Trang {{ pageIndex() }} / {{ studentsTotalPages() }}
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline-secondary btn-sm" (click)="goStudentPage(pageIndex()-1)">&laquo;</button>
+        <button
+          class="btn btn-sm"
+          *ngFor="let p of studentsPageNumbers()"
+          [ngClass]="{ 'btn-primary': pageIndex()===p, 'btn-outline-secondary': pageIndex()!==p }"
+          (click)="goStudentPage(p)"
+        >{{ p }}</button>
+        <button class="btn btn-outline-secondary btn-sm" (click)="goStudentPage(pageIndex()+1)">&raquo;</button>
+      </div>
     </div>
   </div>
 
@@ -166,3 +174,15 @@
   </div>
 </div>
 
+<!-- Confirm dialog xoá SV -->
+<app-confirm-dialog
+  [open]="showConfirmDeleteStudent()"
+  title="Xoá sinh viên"
+  [message]="'Bạn có chắc muốn xoá ' + (studentToDelete()?.name || 'sinh viên') + ' (MSSV ' + (studentToDelete()?.id || '') + ')? Hành động không thể hoàn tác.'"
+  confirmText="Xoá"
+  cancelText="Hủy"
+  tone="danger"
+  (confirmed)="confirmDeleteStudent()"
+  (canceled)="cancelDeleteStudent()"
+  (closed)="cancelDeleteStudent()"
+></app-confirm-dialog>

@@ -1,4 +1,4 @@
-<nav class="navbar navbar-dark app-navbar sticky-top">
+<nav class="navbar navbar-dark app-navbar fixed-top">
   <div class="container-fluid">
     <div class="app-brand d-none d-lg-flex">
       <img class="logo-full" src="assets/logo-classroom-wordmark.svg" alt="Classroom Management" />
@@ -26,7 +26,6 @@
     </div>
 
     <div class="header-actions d-flex align-items-center gap-2">
-      <!-- <a class="btn btn-soft-light btn-sm d-none d-md-inline" routerLink="/home">Trang chủ</a> -->
       <div class="dropdown">
         <button class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
           <i class="bi bi-person-circle me-1"></i> Tài khoản
@@ -34,10 +33,22 @@
         <ul class="dropdown-menu dropdown-menu-end">
           <li><p class="dropdown-item" routerLink="/">TRẦN THU THỦY</p></li>
           <li><hr class="dropdown-divider" /></li>
-          <li><button class="dropdown-item" routerLink="/change-password" >Đổi mật khẩu</button></li>
-          <li><button class="dropdown-item" routerLink="/login">Đăng xuất</button></li>
+          <li><button class="dropdown-item" routerLink="/change-password">Đổi mật khẩu</button></li>
+          <li><button class="dropdown-item text-danger" (click)="askLogout()">Đăng xuất</button></li>
         </ul>
       </div>
     </div>
   </div>
 </nav>
+
+<app-confirm-dialog
+  [open]="showConfirmLogout"
+  title="Đăng xuất"
+  message="Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?"
+  confirmText="Đăng xuất"
+  cancelText="Hủy"
+  tone="danger"
+  (confirmed)="confirmLogout()"
+  (canceled)="cancelLogout()"
+  (closed)="cancelLogout()"
+></app-confirm-dialog>

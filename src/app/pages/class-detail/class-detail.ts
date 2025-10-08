@@ -21,20 +21,15 @@ interface IClassDetail {
   code: string;
   name: string;
   subject: string;
-  lecturer: {
-    name: string;
-    email?: string;
-    phone?: string;
-    dept?: string;
-  };
+  lecturer: { name: string; email?: string; phone?: string; dept?: string };
   semester: Semester;
   status: Status;
-  capacity: number; // Sĩ số tối đa
+  capacity: number;
   students: { id: string; name: string; email?: string; phone: string; maiger: string }[];
   schedule: ScheduleItem[];
-  description?: string; // mô tả
+  description?: string;
   createdAt: string; // ISO
-  updatedAt: string;
+  updatedAt: string; // ISO
   locationNote?: string;
 }
 
@@ -81,9 +76,8 @@ export class ClassDetail {
       updatedAt: new Date().toISOString(),
       locationNote: 'Tầng 2, nhà P. Nếu học Online, link Zoom sẽ gửi trước 24h.',
     };
-    return new Promise((resolve) => setTimeout(() => resolve(sample), 250));
+    return new Promise((resolve) => setTimeout(() => resolve(sample), 200));
   };
-
   loading = signal<boolean>(true);
   detail = signal<IClassDetail | null>(null);
   error = signal<string | null>(null);
@@ -95,11 +89,104 @@ export class ClassDetail {
     return Math.min(100, Math.round((this.enrolledCount() / cap) * 100));
   });
 
+  searchId = signal<string>('');
+  searchName = signal<string>('');
+  searchPhone = signal<string>('');
+  searchEmail = signal<string>('');
+  searchMajor = signal<string>('');
+
+  onSearchId(e: Event) {
+    const value = (e.target as HTMLInputElement | null)?.value?.trim() ?? '';
+    this.searchId.set(value);
+    this.pageIndex.set(1);
+  }
+
+  onSearchName(e: Event) {
+    const value = (e.target as HTMLInputElement | null)?.value?.trim() ?? '';
+    this.searchName.set(value);
+    this.pageIndex.set(1);
+  }
+
+  onSearchPhone(e: Event) {
+    const value = (e.target as HTMLInputElement | null)?.value?.trim() ?? '';
+    this.searchPhone.set(value);
+    this.pageIndex.set(1);
+  }
+
+  onSearchEmail(e: Event) {
+    const value = (e.target as HTMLInputElement | null)?.value?.trim() ?? '';
+    this.searchEmail.set(value);
+    this.pageIndex.set(1);
+  }
+
+  clearStudentFilters() {
+    this.searchId.set('');
+    this.searchName.set('');
+    this.searchPhone.set('');
+    this.searchEmail.set('');
+    this.pageIndex.set(1);
+  }
+
+  studentsFiltered = computed(() => {
+    const d = this.detail();
+    if (!d) return [];
+    const id = this.searchId().toLowerCase();
+    const name = this.searchName().toLowerCase();
+    const phone = this.searchPhone().toLowerCase();
+    const email = this.searchEmail().toLowerCase();
+    const major = this.searchMajor().toLowerCase();
+
+    return d.students.filter((s) => {
+      if (id && !s.id.toLowerCase().includes(id)) return false;
+      if (name && !s.name.toLowerCase().includes(name)) return false;
+      if (phone && !s.phone.toLowerCase().includes(phone)) return false;
+      if (email && !(s.email ?? '').toLowerCase().includes(email)) return false;
+      if (major && !s.maiger.toLowerCase().includes(major)) return false;
+      return true;
+    });
+  });
+  pageSize = signal<number>(10);
+  pageIndex = signal<number>(1);
+
+  studentsTotal = computed(() => this.studentsFiltered().length);
+  studentsTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.studentsTotal() / this.pageSize()))
+  );
+  studentsPaged = computed(() => {
+    const data = this.studentsFiltered();
+    const size = this.pageSize();
+    const idx = this.pageIndex();
+    const start = (idx - 1) * size;
+    return data.slice(start, start + size);
+  });
+  studentsPageNumbers = computed(() =>
+    Array.from({ length: this.studentsTotalPages() }, (_, i) => i + 1)
+  );
+
+  constructor() {
+    effect(() => {
+      this.detail();
+      this.pageSize();
+      this.pageIndex.set(1);
+    });
+  }
+
+  onStudentsPageSizeChange(e: Event) {
+    const v = Number((e.target as HTMLSelectElement | null)?.value ?? 10);
+    this.pageSize.set(v);
+    this.pageIndex.set(1);
+  }
+
+  goStudentPage(i: number) {
+    const total = this.studentsTotalPages();
+    if (i < 1 || i > total) return;
+    this.pageIndex.set(i);
+  }
+
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id') ?? 'unknown-id';
     this.loading.set(true);
     this.error.set(null);
-
     this.mockFetch(id)
       .then((d) => this.detail.set(d))
       .catch(() => this.error.set('Không tải được dữ liệu lớp học.'))
@@ -108,15 +195,11 @@ export class ClassDetail {
 
   copyCode() {
     const code = this.detail()?.code ?? '';
-    navigator.clipboard.writeText(code).then(() => {
-      alert('Đã sao chép mã lớp: ' + code);
-    });
+    navigator.clipboard.writeText(code).then(() => alert('Đã sao chép mã lớp: ' + code));
   }
-
   printPage() {
     window.print();
   }
-
   exportStudentsCSV() {
     const d = this.detail();
     if (!d) return;
@@ -133,5 +216,31 @@ export class ClassDetail {
     a.download = `${d.code}_students.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  showConfirmDeleteStudent = signal<boolean>(false);
+  studentToDelete = signal<{ id: string; name: string } | null>(null);
+
+  askDeleteStudent(s: { id: string; name: string }) {
+    this.studentToDelete.set({ id: s.id, name: s.name });
+    this.showConfirmDeleteStudent.set(true);
+  }
+  confirmDeleteStudent() {
+    const target = this.studentToDelete();
+    if (!target) return;
+    this.detail.update((d) => {
+      if (!d) return d;
+      const next = d.students.filter((x) => x.id !== target.id);
+      return { ...d, students: next };
+    });
+    this.showConfirmDeleteStudent.set(false);
+    this.studentToDelete.set(null);
+
+    const totalPagesAfter = Math.max(1, Math.ceil(this.studentsTotal() / this.pageSize()));
+    if (this.pageIndex() > totalPagesAfter) this.pageIndex.set(totalPagesAfter);
+  }
+  cancelDeleteStudent() {
+    this.showConfirmDeleteStudent.set(false);
+    this.studentToDelete.set(null);
   }
 }

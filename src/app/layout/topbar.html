@@ -1,0 +1,43 @@
+<nav class="navbar navbar-dark app-navbar sticky-top">
+  <div class="container-fluid">
+    <div class="app-brand d-none d-lg-flex">
+      <img class="logo-full" src="assets/logo-classroom-wordmark.svg" alt="Classroom Management" />
+      <img class="logo-icon" src="assets/logo-classroom-icon.svg" alt="CM" />
+    </div>
+
+    <div class="title-area">
+      <button
+        class="btn btn-ghost-light d-none d-lg-inline-flex"
+        (click)="toggleSidebar()"
+        title="Ẩn/hiện thanh điều hướng"
+      >
+        <i class="bi bi-layout-sidebar-inset-reverse"></i>
+      </button>
+      <button
+        class="btn btn-ghost-light d-lg-none"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#appSidenavOffcanvas"
+        title="Mở menu"
+      >
+        <i class="bi bi-list"></i>
+      </button>
+      <h1 class="app-title mb-0">Hệ thống Quản lý Chương trình đào tạo</h1>
+    </div>
+
+    <div class="header-actions d-flex align-items-center gap-2">
+      <!-- <a class="btn btn-soft-light btn-sm d-none d-md-inline" routerLink="/home">Trang chủ</a> -->
+      <div class="dropdown">
+        <button class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-person-circle me-1"></i> Tài khoản
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><p class="dropdown-item" routerLink="/home">TRẦN THU THỦY</p></li>
+          <li><hr class="dropdown-divider" /></li>
+          <li><button class="dropdown-item">Đổi mật khẩu</button></li>
+          <li><button class="dropdown-item">Đăng xuất</button></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>

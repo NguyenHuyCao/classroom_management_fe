@@ -1,0 +1,54 @@
+<aside class="sidenav d-none d-lg-block">
+  <div class="user-mini">
+    <div class="avatar"><i class="bi bi-person"></i></div>
+    <div class="meta">
+      <div class="name">Trần Thu Thủy</div>
+      <div class="sub">A70001 · Sinh viên</div>
+    </div>
+  </div>
+
+  <div class="nav-group">Trang cá nhân</div>
+  <a routerLink="/home" routerLinkActive="active" class="nav-item">
+    <i class="bi bi-person-badge"></i> <span class="nav-label">Thông tin cá nhân</span>
+  </a>
+
+  <div class="nav-group">Tra cứu thông tin</div>
+  <a routerLink="/program" routerLinkActive="active" class="nav-item">
+    <i class="bi bi-journal-text"></i> <span class="nav-label">Chương trình đào tạo</span>
+  </a>
+  <a routerLink="/equivalent" routerLinkActive="active" class="nav-item">
+    <i class="bi bi-card-checklist"></i> <span class="nav-label">Học phần tương đương</span>
+  </a>
+</aside>
+
+<div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="appSidenavOffcanvas">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Danh mục</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body p-0">
+    <div class="user-mini">
+      <div class="avatar"><i class="bi bi-person"></i></div>
+      <div class="meta">
+        <div class="name">Trần Thu Thủy</div>
+        <div class="sub">A70001 · Sinh viên</div>
+      </div>
+    </div>
+    <div class="nav-group">Trang cá nhân</div>
+    <a routerLink="/home" routerLinkActive="active" class="nav-item" data-bs-dismiss="offcanvas">
+      <i class="bi bi-person-badge"></i> <span>Thông tin cá nhân</span>
+    </a>
+    <div class="nav-group">Tra cứu thông tin</div>
+    <a routerLink="/program" routerLinkActive="active" class="nav-item" data-bs-dismiss="offcanvas">
+      <i class="bi bi-journal-text"></i> <span>Chương trình đào tạo</span>
+    </a>
+    <a
+      routerLink="/equivalent"
+      routerLinkActive="active"
+      class="nav-item"
+      data-bs-dismiss="offcanvas"
+    >
+      <i class="bi bi-card-checklist"></i> <span>Học phần tương đương</span>
+    </a>
+  </div>
+</div>

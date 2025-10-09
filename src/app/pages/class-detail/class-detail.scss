@@ -49,3 +49,76 @@
   .actions, a.btn, button.btn { display: none !important; }
   .card-soft { box-shadow: none; border: 1px solid #e5e7eb; }
 }
+
+.program-filter {
+  border-radius: 12px;
+  margin-top: 10px;
+  background: #fff;
+  margin-bottom: 0;
+}
+
+.program-title {
+  font-weight: 600;
+  margin-bottom: 0;
+  margin-top: 8px;
+  font-size: 16px;
+  color: #222;
+}
+
+.program-table {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.program-table thead th {
+  vertical-align: middle;
+  text-align: center;
+  font-size: 14px;
+  background: #a80000;
+  color: #fff;
+  border-color: #a80000;
+  border-bottom: 2px solid #a80000;
+}
+
+.program-table td, .program-table th {
+  font-size: 14px;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+}
+
+.program-table .group-title {
+  font-weight: bold;
+  background: #f8fafc;
+  color: #222;
+  text-align: left;
+  font-size: 15px;
+  border-left: 4px solid #a80000;
+  border-right: none;
+  border-top: none;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.table-responsive {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+select.form-select {
+  border-radius: 8px;
+  border: 1px solid #bdbdbd;
+  font-size: 15px;
+}
+
+label.form-label {
+  font-weight: 500;
+  color: #222;
+  font-size: 15px;
+}
+
+.program-table th, .program-table td {
+  padding: 8px 12px;
+}
+

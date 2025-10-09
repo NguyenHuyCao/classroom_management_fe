@@ -9,34 +9,36 @@ import {
   Validators,
 } from '@angular/forms';
 import { SectionTitleComponent } from '../../components/title/section-title.component';
+import { Router } from '@angular/router';
+import { ConfirmDialog } from '../../components/confirm/confirm-dialog';
 
 type Status = 'Online' | 'Offline';
 type Semester = 'HK1' | 'HK2' | 'HK He';
 
 interface ScheduleItem {
-  day: number; // 2..7
-  start: string; // "08:00"
-  end: string; // "10:00"
-  room: string; // "P203" | "Online"
+  day: number;
+  start: string;
+  end: string;
+  room: string;
 }
 
 interface ClassItem {
   id: string;
-  code: string; // CS101-K40A
-  name: string; // Tên lớp hiển thị
-  subject: string; // Môn học
-  semester: Semester; // HK1 
-  status: Status; // Online | Offline
-  size: number; // Sĩ số dự kiến
-  students: string[]; // Danh sách MSSV
-  schedule: ScheduleItem[]; // Nhiều buổi
-  createdAt: string; // ISO
+  code: string;
+  name: string;
+  subject: string;
+  semester: Semester;
+  status: Status;
+  size: number;
+  students: string[];
+  schedule: ScheduleItem[];
+  createdAt: string;
 }
 
 @Component({
   selector: 'app-class-manager',
   standalone: true,
-  imports: [SectionTitleComponent, CommonModule, ReactiveFormsModule],
+  imports: [SectionTitleComponent, CommonModule, ReactiveFormsModule, ConfirmDialog],
   templateUrl: './class-manager.html',
   styleUrls: ['./class-manager.scss'],
 })
@@ -81,6 +83,9 @@ export class ClassManager {
   form: FormGroup;
   editingId = signal<string | null>(null);
 
+  showConfirmDelete = signal<boolean>(false);
+  classToDelete = signal<ClassItem | null>(null);
+
   semesters: { label: string; value: Semester }[] = [
     { label: 'Học kỳ 1', value: 'HK1' },
     { label: 'Học kỳ 2', value: 'HK2' },
@@ -97,7 +102,7 @@ export class ClassManager {
   statuses: Status[] = ['Online', 'Offline'];
   subjectsRef = ['CS100', 'CS101', 'ML113', 'ML114', 'MA101', 'SE201'];
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: FormBuilder, private router: Router) {
     this.form = this.fb.group({
       code: ['', [Validators.required, Validators.maxLength(30)]],
       name: ['', [Validators.required, Validators.maxLength(120)]],
@@ -137,6 +142,10 @@ export class ClassManager {
     this.pageSize.set(v);
   }
 
+  goDetail(id: string) {
+    this.router.navigate(['/class-detail', id]);
+  }
+
   get scheduleArray() {
     return this.form.get('schedule') as FormArray;
   }
@@ -172,7 +181,6 @@ export class ClassManager {
 
   totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize())));
 
-  // --- CRUD ---
   startCreate() {
     this.editingId.set(null);
     this.form.reset({
@@ -237,10 +245,28 @@ export class ClassManager {
     this.startCreate();
   }
 
-  delete(item: ClassItem) {
-    if (confirm(`Xóa lớp "${item.name}"?`)) {
-      this.classes.update((list) => list.filter((c) => c.id !== item.id));
-    }
+  askDelete(item: ClassItem) {
+    this.classToDelete.set(item);
+    this.showConfirmDelete.set(true);
+  }
+
+  confirmDelete() {
+    const item = this.classToDelete();
+    if (!item) return;
+
+    this.classes.update((list) => list.filter((c) => c.id !== item.id));
+
+    // đóng dialog + dọn state
+    this.showConfirmDelete.set(false);
+    this.classToDelete.set(null);
+
+    const total = Math.max(1, Math.ceil(this.filtered().length / this.pageSize()));
+    if (this.pageIndex() > total) this.pageIndex.set(total);
+  }
+
+  cancelDelete() {
+    this.showConfirmDelete.set(false);
+    this.classToDelete.set(null);
   }
 
   addSchedule() {

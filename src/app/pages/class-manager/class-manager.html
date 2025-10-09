@@ -14,26 +14,30 @@
       </div>
       <div class="col-md-5">
         <label class="form-label">Tên lớp</label>
-        <input class="form-control" formControlName="name" placeholder="VD: Nhập môn Khoa học Máy tính - K40A" />
+        <input
+          class="form-control"
+          formControlName="name"
+          placeholder="VD: Nhập môn Khoa học Máy tính - K40A"
+        />
       </div>
       <div class="col-md-2">
         <label class="form-label">Môn học</label>
         <select class="form-select" formControlName="subject">
           <option value="">— Chọn môn —</option>
-          <option *ngFor="let s of subjectsRef" [value]="s">{{s}}</option>
+          <option *ngFor="let s of subjectsRef" [value]="s">{{ s }}</option>
         </select>
       </div>
       <div class="col-md-2">
         <label class="form-label">Học kỳ</label>
         <select class="form-select" formControlName="semester">
-          <option *ngFor="let s of semesters" [value]="s.value">{{s.label}}</option>
+          <option *ngFor="let s of semesters" [value]="s.value">{{ s.label }}</option>
         </select>
       </div>
 
       <div class="col-md-2">
         <label class="form-label">Trạng thái</label>
         <select class="form-select" formControlName="status">
-          <option *ngFor="let st of statuses" [value]="st">{{st}}</option>
+          <option *ngFor="let st of statuses" [value]="st">{{ st }}</option>
         </select>
       </div>
       <div class="col-md-2">
@@ -50,13 +54,16 @@
             </button>
           </div>
 
-          <div class="row g-2 align-items-end" formArrayName="schedule"
-               *ngFor="let sch of scheduleArray.controls; let i = index">
+          <div
+            class="row g-2 align-items-end"
+            formArrayName="schedule"
+            *ngFor="let sch of scheduleArray.controls; let i = index"
+          >
             <div [formGroupName]="i" class="row g-2 align-items-end">
               <div class="col-md-2">
                 <label class="form-label mb-1">Thứ</label>
                 <select class="form-select" formControlName="day">
-                  <option *ngFor="let w of weekdays" [value]="w.value">{{w.label}}</option>
+                  <option *ngFor="let w of weekdays" [value]="w.value">{{ w.label }}</option>
                 </select>
               </div>
               <div class="col-md-2">
@@ -72,8 +79,12 @@
                 <input class="form-control" formControlName="room" placeholder="P203 / Online" />
               </div>
               <div class="col-md-2">
-                <button type="button" class="btn btn-outline-danger w-100"
-                        (click)="removeSchedule(i)" [disabled]="scheduleArray.length<=1">
+                <button
+                  type="button"
+                  class="btn btn-outline-danger w-100"
+                  (click)="removeSchedule(i)"
+                  [disabled]="scheduleArray.length <= 1"
+                >
                   <i class="bi bi-trash"></i> Xóa
                 </button>
               </div>
@@ -90,8 +101,16 @@
             <div class="col-md-6">
               <label class="form-label mb-1">Thêm nhanh MSSV/Email</label>
               <div class="input-group">
-                <input class="form-control" formControlName="studentsInput" placeholder="VD: SV0123 hoặc email" />
-                <button type="button" class="btn btn-outline-primary" (click)="addStudentFromInput()">
+                <input
+                  class="form-control"
+                  formControlName="studentsInput"
+                  placeholder="VD: SV0123 hoặc email"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-primary"
+                  (click)="addStudentFromInput()"
+                >
                   Thêm
                 </button>
               </div>
@@ -104,12 +123,16 @@
               <button type="button" class="chip-remove" (click)="removeStudent(i)">&times;</button>
             </span>
           </div>
-          <div class="text-muted small" *ngIf="!studentsArray.length">Chưa có sinh viên nào được thêm.</div>
+          <div class="text-muted small" *ngIf="!studentsArray.length">
+            Chưa có sinh viên nào được thêm.
+          </div>
         </div>
       </div>
 
       <div class="col-12 text-end">
-        <button type="button" class="btn btn-outline-secondary me-2" (click)="startCreate()">Làm mới</button>
+        <button type="button" class="btn btn-outline-secondary me-2" (click)="startCreate()">
+          Làm mới
+        </button>
         <button type="submit" class="btn btn-primary">
           {{ editingId() ? 'Cập nhật lớp' : 'Tạo lớp' }}
         </button>
@@ -134,13 +157,28 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let c of paged()">
+        <tr
+          *ngFor="let c of paged()"
+          class="row-click"
+          role="button"
+          tabindex="0"
+          title="Xem chi tiết lớp"
+          (click)="goDetail(c.id)"
+          (keydown.enter)="goDetail(c.id)"
+          (keydown.space)="goDetail(c.id)"
+        >
           <td><span class="fw-600">{{ c.code }}</span></td>
           <td>{{ c.name }}</td>
           <td>{{ c.subject }}</td>
           <td><span class="badge bg-sem">{{ c.semester }}</span></td>
           <td>
-            <span class="badge" [ngClass]="{'bg-online': c.status==='Online', 'bg-offline': c.status==='Offline'}">
+            <span
+              class="badge"
+              [ngClass]="{
+                'bg-online': c.status === 'Online',
+                'bg-offline': c.status === 'Offline'
+              }"
+            >
               {{ c.status }}
             </span>
           </td>
@@ -152,10 +190,22 @@
             </div>
           </td>
           <td class="text-center">
-            <button class="btn btn-light btn-sm me-1" (click)="startEdit(c)"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-light btn-sm" (click)="delete(c)"><i class="bi bi-trash"></i></button>
+            <!-- Chặn click nổi bọt để không điều hướng khi bấm nút -->
+            <button
+              class="btn btn-light btn-sm me-1"
+              (click)="$event.stopPropagation(); startEdit(c)"
+            >
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button
+              class="btn btn-light btn-sm"
+              (click)="$event.stopPropagation(); askDelete(c)"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
           </td>
         </tr>
+
         <tr *ngIf="!paged().length">
           <td colspan="8" class="text-center text-muted">Không có lớp phù hợp bộ lọc.</td>
         </tr>
@@ -168,9 +218,25 @@
       Tổng: {{ filtered().length }} lớp • Trang {{ pageIndex() }}/{{ totalPages() }}
     </div>
     <div class="btn-group">
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex()-1)">&laquo;</button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() - 1)">
+        &laquo;
+      </button>
       <button class="btn btn-outline-secondary btn-sm" disabled>{{ pageIndex() }}</button>
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex()+1)">&raquo;</button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() + 1)">
+        &raquo;
+      </button>
     </div>
   </div>
 </div>
+
+<app-confirm-dialog
+  [open]="showConfirmDelete()"
+  title="Xoá lớp học"
+  [message]="'Bạn có chắc muốn xoá lớp ' + (classToDelete()?.name || '') + ' (' + (classToDelete()?.code || '') + ')? Hành động không thể hoàn tác.'"
+  confirmText="Xoá"
+  cancelText="Hủy"
+  tone="danger"
+  (confirmed)="confirmDelete()"
+  (canceled)="cancelDelete()"
+  (closed)="cancelDelete()"
+></app-confirm-dialog>

@@ -1,0 +1,92 @@
+.row-click {
+  cursor: pointer;
+  transition: background-color .15s ease, box-shadow .15s ease, transform .02s ease-in;
+}
+.row-click:hover {
+  background-color: #f8fafc;
+}
+.row-click:active {
+  transform: translateY(1px);
+}
+.row-click:focus {
+  outline: 2px solid rgba(37, 99, 235, .35);
+  outline-offset: -2px;
+  background-color: #f1f5f9;
+}
+.row-click:hover > td,
+.row-click:focus > td {
+  background-color: inherit;
+}
+
+.program-filter {
+  border-radius: 12px;
+  margin-top: 10px;
+  background: #fff;
+  margin-bottom: 0;
+}
+
+.program-title {
+  font-weight: 600;
+  margin-bottom: 0;
+  margin-top: 8px;
+  font-size: 16px;
+  color: #222;
+}
+
+.program-table {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.program-table thead th {
+  vertical-align: middle;
+  text-align: center;
+  font-size: 14px;
+  background: #a80000;
+  color: #fff;
+  border-color: #a80000;
+  border-bottom: 2px solid #a80000;
+}
+
+.program-table td, .program-table th {
+  font-size: 14px;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+}
+
+.program-table .group-title {
+  font-weight: bold;
+  background: #f8fafc;
+  color: #222;
+  text-align: left;
+  font-size: 15px;
+  border-left: 4px solid #a80000;
+  border-right: none;
+  border-top: none;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.table-responsive {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+select.form-select {
+  border-radius: 8px;
+  border: 1px solid #bdbdbd;
+  font-size: 15px;
+}
+
+label.form-label {
+  font-weight: 500;
+  color: #222;
+  font-size: 15px;
+}
+
+.program-table th, .program-table td {
+  padding: 8px 12px;
+}
+

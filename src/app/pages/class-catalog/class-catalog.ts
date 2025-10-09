@@ -1,6 +1,7 @@
 import { Component, computed, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SectionTitleComponent } from '../../components/title/section-title.component';
+import { Router } from '@angular/router';
 
 type Status = 'Online' | 'Offline';
 type Semester = 'HK1' | 'HK2' | 'HK He';
@@ -175,7 +176,7 @@ export class ClassCatalog {
 
   totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize())));
 
-  constructor() {
+  constructor(private router: Router) {
     effect(() => {
       this.search();
       this.yearFilter();
@@ -186,6 +187,9 @@ export class ClassCatalog {
       this.sortDir();
       this.pageIndex.set(1);
     });
+  }
+  goDetail(id: string) {
+    this.router.navigate(['/class-detail', id]);
   }
 
   onSearch(e: Event) {

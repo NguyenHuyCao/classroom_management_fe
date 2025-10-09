@@ -1,11 +1,14 @@
-<app-section-title title="DANH SÁCH LỚP HỌC (TOÀN NĂM)"></app-section-title>
+<app-section-title title="DANH SÁCH LỚP HỌC"></app-section-title>
 
 <div class="card-soft p-3 mb-3 mt-2">
   <div class="row g-3 align-items-end">
     <div class="col-md-4">
       <label class="form-label mb-1">Tìm kiếm (mã / tên lớp / môn / giảng viên)</label>
-      <input class="form-control" placeholder="VD: CS101, ML113, Nguyễn Văn A..."
-            (input)="onSearch($event)" />
+      <input
+        class="form-control"
+        placeholder="VD: CS101, ML113, Nguyễn Văn A..."
+        (input)="onSearch($event)"
+      />
     </div>
 
     <div class="col-md-2">
@@ -48,9 +51,9 @@
     <div class="col-md-2">
       <label class="form-label mb-1">Kích thước trang</label>
       <select class="form-select" (change)="onPageSize($event)">
-        <option [selected]="pageSize()==10">10</option>
-        <option [selected]="pageSize()==20">20</option>
-        <option [selected]="pageSize()==50">50</option>
+        <option [selected]="pageSize() == 10">10</option>
+        <option [selected]="pageSize() == 20">20</option>
+        <option [selected]="pageSize() == 50">50</option>
       </select>
     </div>
     <div class="col-md-10 text-md-end d-flex gap-2 justify-content-md-end align-items-end">
@@ -106,34 +109,42 @@
       </thead>
       <tbody>
         <tr
-  *ngFor="let r of paged()"
-  class="row-click"
-  role="button"
-  tabindex="0"
-  title="Xem chi tiết lớp"
-  (click)="goDetail(r.id)"
-  (keydown.enter)="goDetail(r.id)"
-  (keydown.space)="goDetail(r.id)"
->
-  <td>{{ r.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
-  <td class="fw-600">{{ r.code }}</td>
-  <td>{{ r.name }}</td>
-  <td>{{ r.subject }}</td>
-  <td>{{ r.lecturer }}</td>
-  <td><span class="badge bg-sem">{{ r.semester }}</span></td>
-  <td>
-    <span class="badge" [ngClass]="{'bg-online': r.status==='Online', 'bg-offline': r.status==='Offline'}">
-      {{ r.status }}
-    </span>
-  </td>
-  <td>{{ r.size }}</td>
-  <td>
-    <div class="sch" *ngFor="let s of r.schedule">
-      <i class="bi bi-calendar2-week me-1"></i>
-      Thứ {{ s.day }} • {{ s.start }}–{{ s.end }} • {{ s.room }}
-    </div>
-  </td>
-</tr>
+          *ngFor="let r of paged()"
+          class="row-click"
+          role="button"
+          tabindex="0"
+          title="Xem chi tiết lớp"
+          (click)="goDetail(r.id)"
+          (keydown.enter)="goDetail(r.id)"
+          (keydown.space)="goDetail(r.id)"
+        >
+          <td>{{ r.createdAt | date : 'dd/MM/yyyy HH:mm' }}</td>
+          <td class="fw-600">{{ r.code }}</td>
+          <td>{{ r.name }}</td>
+          <td>{{ r.subject }}</td>
+          <td>{{ r.lecturer }}</td>
+          <td>
+            <span class="badge bg-sem">{{ r.semester }}</span>
+          </td>
+          <td>
+            <span
+              class="badge"
+              [ngClass]="{
+                'bg-online': r.status === 'Online',
+                'bg-offline': r.status === 'Offline'
+              }"
+            >
+              {{ r.status }}
+            </span>
+          </td>
+          <td>{{ r.size }}</td>
+          <td>
+            <div class="sch" *ngFor="let s of r.schedule">
+              <i class="bi bi-calendar2-week me-1"></i>
+              Thứ {{ s.day }} • {{ s.start }}–{{ s.end }} • {{ s.room }}
+            </div>
+          </td>
+        </tr>
 
         <tr *ngIf="!paged().length">
           <td colspan="9" class="text-center text-muted">Không có lớp phù hợp bộ lọc.</td>
@@ -147,9 +158,13 @@
       Tổng: {{ filtered().length }} lớp • Trang {{ pageIndex() }}/{{ totalPages() }}
     </div>
     <div class="btn-group">
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex()-1)">&laquo;</button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() - 1)">
+        &laquo;
+      </button>
       <button class="btn btn-outline-secondary btn-sm" disabled>{{ pageIndex() }}</button>
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex()+1)">&raquo;</button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() + 1)">
+        &raquo;
+      </button>
     </div>
   </div>
 </div>

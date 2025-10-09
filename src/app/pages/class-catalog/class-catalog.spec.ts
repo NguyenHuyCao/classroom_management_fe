@@ -1,18 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { ClassCatalo } from './class-catalog';
+import { ClassCatalog } from './class-catalog';
 
 describe('ClassCatalo', () => {
-  let component: ClassCatalo;
-  let fixture: ComponentFixture<ClassCatalo>;
+  let component: ClassCatalog;
+  let fixture: ComponentFixture<ClassCatalog>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ClassCatalo]
-    })
-    .compileComponents();
+      imports: [ClassCatalog],
+    }).compileComponents();
 
-    fixture = TestBed.createComponent(ClassCatalo);
+    fixture = TestBed.createComponent(ClassCatalog);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

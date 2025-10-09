@@ -27,7 +27,7 @@ interface ClassItem {
   code: string;
   name: string;
   subject: string;
-  semester: Semester;
+  semester: Semester; // Kì
   status: Status;
   size: number;
   students: string[];

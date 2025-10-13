@@ -1,8 +1,8 @@
 import {
   CanActivateChildFn,
   Router,
-  ActivatedRouteSnapshot,
   RouterStateSnapshot,
+  ActivatedRouteSnapshot,
 } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from '../auth.service';
@@ -13,6 +13,7 @@ export const authGuard: CanActivateChildFn = (
 ) => {
   const auth = inject(AuthService);
   const router = inject(Router);
+
   if (!auth.isLoggedIn()) {
     router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
     return false;

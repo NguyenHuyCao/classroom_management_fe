@@ -1,17 +1,22 @@
-import { Component, Renderer2 } from '@angular/core';
+import { Component, Renderer2, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { NgIf } from '@angular/common';
 import { ConfirmDialog } from '../components/confirm/confirm-dialog';
+import { AuthService } from '../core/auth.service';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [RouterLink, ConfirmDialog, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, ConfirmDialog, NgIf],
   templateUrl: './topbar.html',
 })
 export class Topbar {
-  showConfirmLogout = false;
+  private r = inject(Renderer2);
+  private router = inject(Router);
+  private auth = inject(AuthService);
 
-  constructor(private r: Renderer2, private router: Router) {}
+  showConfirmLogout = false;
+  user = computed(() => this.auth.user());
 
   toggleSidebar() {
     const has = document.body.classList.contains('sidebar-collapsed');
@@ -25,8 +30,8 @@ export class Topbar {
 
   confirmLogout() {
     this.showConfirmLogout = false;
-
-    this.router.navigate(['/login']);
+    this.auth.logout(); // XÓA token + user ở memory & storage
+    this.router.navigate(['/login']); // về trang login
   }
 
   cancelLogout() {

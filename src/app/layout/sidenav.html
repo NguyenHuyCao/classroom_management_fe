@@ -1,9 +1,11 @@
 <aside class="sidenav d-none d-lg-block">
-  <div class="user-mini">
+  <div class="user-mini" *ngIf="user() as u">
     <div class="avatar"><i class="bi bi-person"></i></div>
     <div class="meta">
-      <div class="name">Trần Thu Thủy</div>
-      <div class="sub">A70001 · Sinh viên</div>
+      <div class="name">{{ u.name }}</div>
+      <div class="sub">
+        {{ u.code || '' }} <span *ngIf="u.role">· {{ u.role }}</span>
+      </div>
     </div>
   </div>
 
@@ -27,49 +29,39 @@
   </a>
 </aside>
 
+<!-- Offcanvas (mobile) -->
 <div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="appSidenavOffcanvas">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title">Danh mục</h5>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
   </div>
   <div class="offcanvas-body p-0">
-    <div class="user-mini">
+    <div class="user-mini" *ngIf="user() as u">
       <div class="avatar"><i class="bi bi-person"></i></div>
       <div class="meta">
-        <div class="name">Trần Thu Thủy</div>
-        <div class="sub">A70001 · Sinh viên</div>
+        <div class="name">{{ u.name }}</div>
+        <div class="sub">
+          {{ u.code || '' }} <span *ngIf="u.role">· {{ u.role }}</span>
+        </div>
       </div>
     </div>
+
     <div class="nav-group">Trang cá nhân</div>
     <a routerLink="/home" routerLinkActive="active" class="nav-item" data-bs-dismiss="offcanvas">
       <i class="bi bi-person-badge"></i> <span>Thông tin cá nhân</span>
     </a>
+
     <div class="nav-group">Tra cứu thông tin</div>
     <a routerLink="/program" routerLinkActive="active" class="nav-item" data-bs-dismiss="offcanvas">
       <i class="bi bi-journal-text"></i> <span>Chương trình đào tạo</span>
     </a>
-    <a
-      routerLink="/class-manager"
-      routerLinkActive="active"
-      class="nav-item"
-      data-bs-dismiss="offcanvas"
-    >
+    <a routerLink="/class-manager" routerLinkActive="active" class="nav-item" data-bs-dismiss="offcanvas">
       <i class="bi bi-kanban"></i> <span>Quản lý lớp học</span>
     </a>
-    <a
-      routerLink="/class-catalog"
-      routerLinkActive="active"
-      class="nav-item"
-      data-bs-dismiss="offcanvas"
-    >
+    <a routerLink="/class-catalog" routerLinkActive="active" class="nav-item" data-bs-dismiss="offcanvas">
       <i class="bi bi-card-checklist"></i> <span>Danh sách lớp học</span>
     </a>
-    <a
-      routerLink="/people"
-      routerLinkActive="active"
-      class="nav-item"
-      data-bs-dismiss="offcanvas"
-    >
+    <a routerLink="/people" routerLinkActive="active" class="nav-item" data-bs-dismiss="offcanvas">
       <i class="bi bi-person-lines-fill"></i> <span>Danh sách thành viên</span>
     </a>
   </div>

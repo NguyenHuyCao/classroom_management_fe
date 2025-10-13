@@ -13,8 +13,8 @@ export interface User {
   name: string;
   role?: string;
   email?: string;
+  code?: string | null; // mã SV/GV
 }
-
 export interface LoginReq {
   email: string;
   password: string;
@@ -26,6 +26,7 @@ export interface LoginData {
   userId: number;
   fullName: string;
   role: string;
+  code?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -41,15 +42,14 @@ export class AuthService {
   private refreshing?: Promise<string>;
 
   constructor() {
-    if (this.isBrowser) {
-      const raw = localStorage.getItem('auth');
-      if (raw) {
-        try {
-          const { tokens, user } = JSON.parse(raw);
-          this._tokens.set(tokens);
-          this._user.set(user);
-        } catch {}
-      }
+    if (!this.isBrowser) return;
+    const raw = localStorage.getItem('auth') ?? sessionStorage.getItem('auth');
+    if (raw) {
+      try {
+        const { tokens, user } = JSON.parse(raw);
+        this._tokens.set(tokens);
+        this._user.set(user);
+      } catch {}
     }
   }
 
@@ -57,19 +57,27 @@ export class AuthService {
   user = () => this._user();
   isLoggedIn = () => !!this._tokens()?.accessToken;
 
-  // ------- AUTH: LOGIN / REFRESH (giữ nguyên logic bạn đang dùng) -------
   async login(p: { username: string; password: string; remember: boolean }) {
     const body: LoginReq = { email: p.username, password: p.password, remember: p.remember };
+
     const d = await firstValueFrom(this.http.post<LoginData>(`${this.base}/auth/login`, body));
+
     this.setSession(
       { accessToken: d.accessToken, refreshToken: d.refreshToken },
-      { id: String(d.userId), name: d.fullName, role: d.role, email: body.email },
+      {
+        id: String(d.userId),
+        name: d.fullName,
+        role: d.role,
+        email: body.email,
+        code: d.code ?? null,
+      },
       p.remember
     );
   }
 
   refresh(): Promise<string> {
     if (this.refreshing) return this.refreshing;
+
     const rt = this._tokens()?.refreshToken;
     if (!rt) return Promise.reject(new Error('No refresh token'));
 
@@ -79,7 +87,11 @@ export class AuthService {
       })
     )
       .then((res) => {
-        const nextTokens: Tokens = { accessToken: res.accessToken, refreshToken: res.refreshToken };
+        const nextTokens: Tokens = {
+          accessToken: res.accessToken,
+          refreshToken: res.refreshToken,
+        };
+        // keep current user + remember state (ưu tiên localStorage nếu đang lưu ở đó)
         this.setSession(nextTokens, this._user()!, true);
         return nextTokens.accessToken;
       })
@@ -87,9 +99,7 @@ export class AuthService {
         this.logout();
         throw e;
       })
-      .finally(() => {
-        this.refreshing = undefined;
-      });
+      .finally(() => (this.refreshing = undefined));
 
     return this.refreshing;
   }
@@ -97,13 +107,33 @@ export class AuthService {
   private setSession(tokens: Tokens, user: User, remember: boolean) {
     this._tokens.set(tokens);
     this._user.set(user);
-    if (remember && this.isBrowser) localStorage.setItem('auth', JSON.stringify({ tokens, user }));
+
+    if (!this.isBrowser) return;
+    try {
+      const payload = JSON.stringify({ tokens, user });
+      if (remember) {
+        sessionStorage.removeItem('auth');
+        localStorage.setItem('auth', payload);
+      } else {
+        localStorage.removeItem('auth');
+        sessionStorage.setItem('auth', payload);
+      }
+    } catch {
+      // storage bị chặn -> vẫn cho chạy trong bộ nhớ
+    }
   }
 
   logout() {
     this._tokens.set(null);
     this._user.set(null);
-    if (this.isBrowser) localStorage.removeItem('auth');
+    if (this.isBrowser) {
+      try {
+        localStorage.removeItem('auth');
+      } catch {}
+      try {
+        sessionStorage.removeItem('auth');
+      } catch {}
+    }
   }
 
   // -------------------- REGISTER APIs --------------------

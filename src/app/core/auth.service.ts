@@ -59,9 +59,7 @@ export class AuthService {
 
   async login(p: { username: string; password: string; remember: boolean }) {
     const body: LoginReq = { email: p.username, password: p.password, remember: p.remember };
-
     const d = await firstValueFrom(this.http.post<LoginData>(`${this.base}/auth/login`, body));
-
     this.setSession(
       { accessToken: d.accessToken, refreshToken: d.refreshToken },
       {
@@ -91,7 +89,6 @@ export class AuthService {
           accessToken: res.accessToken,
           refreshToken: res.refreshToken,
         };
-        // keep current user + remember state (ưu tiên localStorage nếu đang lưu ở đó)
         this.setSession(nextTokens, this._user()!, true);
         return nextTokens.accessToken;
       })
@@ -148,7 +145,6 @@ export class AuthService {
     specializedClass: string;
     gender: 'MALE' | 'FEMALE';
   }) {
-    // envelopeInterceptor sẽ unwrap -> .post<void> hoặc .post<null> đều OK
     return firstValueFrom(this.http.post<null>(`${this.base}/auth/register/student`, p));
   }
 
@@ -162,5 +158,12 @@ export class AuthService {
     academicRank: string;
   }) {
     return firstValueFrom(this.http.post<null>(`${this.base}/auth/register/teacher`, p));
+  }
+
+  // -------------------- CHANGE PASSWORD --------------------
+  changePassword(p: { currentPassword: string; newPassword: string }) {
+    // Có authInterceptor => tự gắn Bearer token
+    // envelopeInterceptor sẽ unwrap -> nhận null nếu success
+    return firstValueFrom(this.http.post<null>(`${this.base}/auth/change-password`, p));
   }
 }

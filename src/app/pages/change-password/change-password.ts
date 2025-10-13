@@ -1,60 +1,88 @@
-import { Component } from '@angular/core';
-import { SectionTitleComponent } from '../../components/title/section-title.component';
-import { FormsModule } from '@angular/forms';
-import { NgClass, NgIf } from '@angular/common';
+import { Component, inject, signal } from '@angular/core';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { NgIf, NgClass } from '@angular/common';
 import { Router } from '@angular/router';
 
+import { SectionTitleComponent } from '../../components/title/section-title.component';
 import { ConfirmDialog } from '../../components/confirm/confirm-dialog';
+import { AuthService } from '../../core/auth.service';
+import { ApiError } from '../../core/interceptors/envelope.interceptor';
+import { ToastService } from '../../components/toast/toast.service';
 
 @Component({
   selector: 'app-change-password',
-  templateUrl: './change-password.html',
   standalone: true,
-  imports: [SectionTitleComponent, FormsModule, NgClass, NgIf, ConfirmDialog],
+  imports: [SectionTitleComponent, ReactiveFormsModule, NgIf, NgClass, ConfirmDialog],
+  templateUrl: './change-password.html',
 })
 export class ChangePassword {
-  oldPassword = '';
-  newPassword = '';
-  confirmPassword = '';
-  errorMessage = '';
-  successMessage = '';
+  private fb = inject(FormBuilder);
+  private auth = inject(AuthService);
+  private router = inject(Router);
+  private toast = inject(ToastService);
 
-  showConfirmPostChange = false;
+  loading = signal(false);
+  showConfirmPostChange = signal(false);
+  err = signal<string | null>(null);
+  ok = signal<string | null>(null);
+  showOld = signal(false);
+  showNew = signal(false);
+  showCf = signal(false);
 
-  private readonly correctOldPassword = 'matkhaucu';
+  form = this.fb.nonNullable.group({
+    currentPassword: ['', [Validators.required, Validators.minLength(6)]],
+    newPassword: ['', [Validators.required, Validators.minLength(6)]],
+    confirmPassword: ['', [Validators.required, Validators.minLength(6)]],
+  });
 
-  constructor(private router: Router) {}
+  get f() {
+    return this.form.controls;
+  }
 
-  onSubmit() {
-    this.errorMessage = '';
-    this.successMessage = '';
+  async onSubmit() {
+    this.err.set(null);
+    this.ok.set(null);
 
-    if (!this.oldPassword || !this.newPassword || !this.confirmPassword) {
-      this.errorMessage = 'Không được để trống dữ liệu!';
+    if (this.form.invalid || this.loading()) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    if (this.f.newPassword.value !== this.f.confirmPassword.value) {
+      this.err.set('Mật khẩu mới không khớp nhau!');
       return;
     }
 
-    if (this.oldPassword !== this.correctOldPassword) {
-      this.errorMessage = 'Mật khẩu cũ không chính xác!';
-      return;
-    }
+    this.loading.set(true);
+    try {
+      await this.auth.changePassword({
+        currentPassword: this.f.currentPassword.value,
+        newPassword: this.f.newPassword.value,
+      });
 
-    if (this.newPassword !== this.confirmPassword) {
-      this.errorMessage = 'Mật khẩu mới không khớp nhau!';
-      return;
-    }
+      this.ok.set('Đổi mật khẩu thành công.');
+      this.toast.success('Đổi mật khẩu thành công');
+      this.showConfirmPostChange.set(true);
 
-    this.successMessage = 'Thay đổi mật khẩu thành công';
-    this.showConfirmPostChange = true;
+      // Xoá ô nhập để tránh lộ mật khẩu nếu người dùng ở lại
+      this.form.reset();
+    } catch (e: any) {
+      const msg =
+        e instanceof ApiError
+          ? e.message || 'Đổi mật khẩu thất bại.'
+          : e?.message || 'Đổi mật khẩu thất bại.';
+      this.err.set(msg);
+      this.toast.danger(msg);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   confirmLogoutAfterChange() {
-    this.showConfirmPostChange = false;
-
+    this.showConfirmPostChange.set(false);
+    this.auth.logout();
     this.router.navigate(['/login']);
   }
-
   cancelPostChange() {
-    this.showConfirmPostChange = false;
+    this.showConfirmPostChange.set(false);
   }
 }

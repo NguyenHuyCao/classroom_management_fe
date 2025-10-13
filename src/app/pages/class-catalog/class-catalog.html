@@ -2,18 +2,21 @@
 
 <div class="card-soft p-3 mb-3 mt-2">
   <div class="row g-3 align-items-end">
-    <div class="col-md-4">
-      <label class="form-label mb-1">Tìm kiếm (mã / tên lớp / môn / giảng viên)</label>
+    <!-- Tìm theo Môn (courseCode) -->
+    <div class="col-md-3">
+      <label class="form-label mb-1">Tìm theo Môn (mã học phần)</label>
       <input
         class="form-control"
-        placeholder="VD: CS101, ML113, Nguyễn Văn A..."
-        (input)="onSearch($event)"
+        placeholder="VD: CS101, ML113..."
+        [value]="uiCourse()"
+        (input)="onSearchInput($event)"
+        (keyup.enter)="doSearch()"
       />
     </div>
 
     <div class="col-md-2">
       <label class="form-label mb-1">Năm</label>
-      <select class="form-select" (change)="onYear($event)">
+      <select class="form-select" [value]="uiYear()" (change)="onYear($event)">
         <option value="ALL">Tất cả</option>
         <option *ngFor="let y of years()" [value]="y">{{ y }}</option>
       </select>
@@ -21,7 +24,7 @@
 
     <div class="col-md-2">
       <label class="form-label mb-1">Học kỳ</label>
-      <select class="form-select" (change)="onSemester($event)">
+      <select class="form-select" [value]="uiSemester()" (change)="onSemester($event)">
         <option value="ALL">Tất cả</option>
         <option value="HK1">Học kỳ 1</option>
         <option value="HK2">Học kỳ 2</option>
@@ -31,25 +34,25 @@
 
     <div class="col-md-2">
       <label class="form-label mb-1">Trạng thái</label>
-      <select class="form-select" (change)="onStatus($event)">
+      <select class="form-select" [value]="uiStatus()" (change)="onStatus($event)">
         <option value="ALL">Tất cả</option>
         <option value="Online">Online</option>
         <option value="Offline">Offline</option>
       </select>
     </div>
 
-    <div class="col-md-2">
-    <div class="col-md-10 text-md-end d-flex gap-2 justify-content-md-end align-items-end">
+    <div class="col-md-3 d-flex gap-2 justify-content-md-center">
+      <button class="btn btn-primary" (click)="doSearch()">
+        <i class="bi bi-search"></i> Tìm
+      </button>
       <button class="btn btn-outline-secondary" (click)="exportCSV()">
         <i class="bi bi-download"></i> Xuất PDF
       </button>
     </div>
   </div>
-  </div>
-
-  
 </div>
 
+<!-- Stats -->
 <div class="row g-3 mb-3">
   <div class="col-md-3">
     <div class="stat card-soft p-3">
@@ -77,6 +80,7 @@
   </div>
 </div>
 
+<!-- Table -->
 <div class="card-soft p-3">
   <div class="table-responsive">
     <table class="table table-bordered align-middle program-table">
@@ -95,7 +99,7 @@
       </thead>
       <tbody>
         <tr
-          *ngFor="let r of paged()"
+          *ngFor="let r of displayed()"
           class="row-click"
           role="button"
           tabindex="0"
@@ -109,17 +113,9 @@
           <td>{{ r.name }}</td>
           <td>{{ r.subject }}</td>
           <td>{{ r.lecturer }}</td>
+          <td><span class="badge bg-sem">{{ r.semester }}</span></td>
           <td>
-            <span class="badge bg-sem">{{ r.semester }}</span>
-          </td>
-          <td>
-            <span
-              class="badge"
-              [ngClass]="{
-                'bg-online': r.status === 'Online',
-                'bg-offline': r.status === 'Offline'
-              }"
-            >
+            <span class="badge" [ngClass]="{ 'bg-online': r.status === 'Online', 'bg-offline': r.status === 'Offline' }">
               {{ r.status }}
             </span>
           </td>
@@ -127,13 +123,16 @@
           <td>
             <div class="sch" *ngFor="let s of r.schedule">
               <i class="bi bi-calendar2-week me-1"></i>
-              Thứ {{ s.day }} • {{ s.start }}–{{ s.end }} • {{ s.room }}
+              {{ s.day }} • {{ s.start }}–{{ s.end }} • {{ s.room }}
             </div>
           </td>
         </tr>
 
-        <tr *ngIf="!paged().length">
+        <tr *ngIf="!loading() && !displayed().length">
           <td colspan="9" class="text-center text-muted">Không có lớp phù hợp bộ lọc.</td>
+        </tr>
+        <tr *ngIf="loading()">
+          <td colspan="9" class="text-center text-muted">Đang tải...</td>
         </tr>
       </tbody>
     </table>
@@ -141,16 +140,14 @@
 
   <div class="d-flex justify-content-between align-items-center">
     <div class="text-muted small">
-      Tổng: {{ filtered().length }} lớp • Trang {{ pageIndex() }}/{{ totalPages() }}
+      Tổng: {{ totalElementsSvr() }} lớp • Trang {{ pageIndex() }}/{{ totalPagesSvr() }}
     </div>
     <div class="btn-group">
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() - 1)">
-        &laquo;
-      </button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() - 1)">&laquo;</button>
       <button class="btn btn-outline-secondary btn-sm" disabled>{{ pageIndex() }}</button>
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() + 1)">
-        &raquo;
-      </button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() + 1)">&raquo;</button>
     </div>
   </div>
+
+  <div *ngIf="err()" class="text-danger text-center mt-2">{{ err() }}</div>
 </div>

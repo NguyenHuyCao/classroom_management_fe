@@ -1,0 +1,31 @@
+/* Giữ phong cách đã dùng trong app.scss */
+.profile-card .avatar-lg {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-500);
+}
+.profile-card .name {
+  margin-top: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Placeholder cho skeleton */
+.placeholder {
+  display: inline-block;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  min-height: 1rem;
+}
+.placeholder-glow .placeholder {
+  animation: placeholder-glow 1.4s ease-in-out infinite;
+}
+@keyframes placeholder-glow {
+  50% { opacity: .4; }
+}

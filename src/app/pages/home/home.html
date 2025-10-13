@@ -1,11 +1,43 @@
 <app-section-title title="Thông tin cá nhân"></app-section-title>
 
-<div class="row g-3 m-2 d-flex">
+<!-- Loading -->
+<div class="p-4" *ngIf="loading()">
+  <div class="row g-3">
+    <div class="col-12 col-lg-4">
+      <div class="card-soft p-4 placeholder-glow">
+        <div class="avatar-lg mb-3 placeholder"></div>
+        <div class="placeholder col-8 mb-2"></div>
+        <div class="placeholder col-6"></div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-8">
+      <div class="card-soft p-4 placeholder-glow">
+        <div class="placeholder col-5 mb-2"></div>
+        <div class="placeholder col-7 mb-2"></div>
+        <div class="placeholder col-6 mb-2"></div>
+        <div class="placeholder col-8 mb-2"></div>
+        <div class="placeholder col-4 mb-2"></div>
+        <div class="placeholder col-6"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Error -->
+<div class="p-4 text-center" *ngIf="!loading() && err()">
+  <div class="text-danger mb-3">{{ err() }}</div>
+  <button class="btn btn-outline-primary" (click)="load()">
+    <i class="bi bi-arrow-clockwise me-1"></i>Tải lại
+  </button>
+</div>
+
+<!-- Student view -->
+<div class="row g-3 m-2 d-flex" *ngIf="!loading() && !err() && student() as s">
   <div class="col-12 col-lg-4 align-content-start">
-    <div class="card-soft profile-card p-4 ">
+    <div class="card-soft profile-card p-4">
       <div class="d-flex flex-column align-items-center">
         <div class="avatar-lg"><i class="bi bi-person fs-1"></i></div>
-        <div class="name">TRẦN THU THỦY</div>
+        <div class="name">{{ upper(s.fullName) }}</div>
       </div>
     </div>
   </div>
@@ -14,39 +46,76 @@
     <div class="card-soft p-0 h-100">
       <div class="info-row">
         <div class="th">Mã sinh viên</div>
-        <div class="td">A70001</div>
+        <div class="td">{{ s.studentCode }}</div>
       </div>
       <div class="info-row">
         <div class="th">Họ tên</div>
-        <div class="td">TRẦN THU THỦY</div>
+        <div class="td">{{ s.fullName }}</div>
       </div>
       <div class="info-row">
         <div class="th">Giới tính</div>
-        <div class="td">Nữ</div>
+        <div class="td">{{ genderVi(s.genderCode) }}</div>
       </div>
       <div class="info-row">
         <div class="th">Lớp chuyên ngành</div>
-        <div class="td">TI40h1</div>
+        <div class="td">{{ s.specializedClass }}</div>
       </div>
       <div class="info-row">
         <div class="th">Email</div>
-        <div class="td">a70001@thanglong.edu.vn</div>
+        <div class="td">{{ s.email }}</div>
       </div>
       <div class="info-row">
-        <div class="th">Ngành học cũ</div>
-        <div class="td">—</div>
+        <div class="th">Số điện thoại</div>
+        <div class="td">{{ s.phone || '—' }}</div>
       </div>
       <div class="info-row">
         <div class="th">Ngành học hiện tại</div>
-        <div class="td">Khoa học máy tính</div>
-      </div>
-      <div class="info-row">
-        <div class="th">Ngành học 2</div>
-        <div class="td">—</div>
+        <div class="td">{{ s.majorName }}</div>
       </div>
       <div class="info-row">
         <div class="th">Khóa</div>
-        <div class="td">Khóa 40</div>
+        <div class="td">{{ s.cohortName }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Teacher view -->
+<div class="row g-3 m-2 d-flex" *ngIf="!loading() && !err() && teacher() as t">
+  <div class="col-12 col-lg-4 align-content-start">
+    <div class="card-soft profile-card p-4">
+      <div class="d-flex flex-column align-items-center">
+        <div class="avatar-lg"><i class="bi bi-person-badge fs-1"></i></div>
+        <div class="name">{{ upper(t.fullName) }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-8">
+    <div class="card-soft p-0 h-100">
+      <div class="info-row">
+        <div class="th">Mã giảng viên</div>
+        <div class="td">{{ t.lecturerCode }}</div>
+      </div>
+      <div class="info-row">
+        <div class="th">Họ tên</div>
+        <div class="td">{{ t.fullName }}</div>
+      </div>
+      <div class="info-row">
+        <div class="th">Khoa/Bộ môn</div>
+        <div class="td">{{ t.departmentName }}</div>
+      </div>
+      <div class="info-row">
+        <div class="th">Học hàm/Học vị</div>
+        <div class="td">{{ rankVi(t.academicRank) }}</div>
+      </div>
+      <div class="info-row">
+        <div class="th">Email</div>
+        <div class="td">{{ t.email }}</div>
+      </div>
+      <div class="info-row">
+        <div class="th">Số điện thoại</div>
+        <div class="td">{{ t.phone || '—' }}</div>
       </div>
     </div>
   </div>

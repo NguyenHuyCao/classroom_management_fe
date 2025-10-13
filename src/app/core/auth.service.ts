@@ -2,7 +2,7 @@ import { Injectable, signal, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../environments/environment';
 
 export interface Tokens {
   accessToken: string;
@@ -14,11 +14,10 @@ export interface User {
   role?: string;
   email?: string;
 }
-export interface Envelope<T> {
-  success: boolean;
-  code: string | null;
-  message: string | null;
-  data: T;
+export interface LoginReq {
+  email: string;
+  password: string;
+  remember: boolean;
 }
 export interface LoginData {
   accessToken: string;
@@ -26,11 +25,6 @@ export interface LoginData {
   userId: number;
   fullName: string;
   role: string;
-}
-export interface LoginReq {
-  email: string;
-  password: string;
-  remember: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -42,8 +36,8 @@ export class AuthService {
   private _tokens = signal<Tokens | null>(null);
   private _user = signal<User | null>(null);
 
-  private base = environment.apiBaseUrl; // vd: http://localhost:8080/api/v1
-  private refreshing?: Promise<string>; // chống gọi refresh trùng
+  private base = environment.apiBaseUrl;
+  private refreshing?: Promise<string>;
 
   constructor() {
     if (this.isBrowser) {
@@ -62,13 +56,13 @@ export class AuthService {
   user = () => this._user();
   isLoggedIn = () => !!this._tokens()?.accessToken;
 
-  /** Login theo BE: /auth/login trả Envelope<LoginData> */
   async login(p: { username: string; password: string; remember: boolean }) {
+    // BE nhận email, UI đang nhập "username" -> map sang email
     const body: LoginReq = { email: p.username, password: p.password, remember: p.remember };
-    const res = await firstValueFrom(
-      this.http.post<Envelope<LoginData>>(`${this.base}/auth/login`, body)
-    );
-    const d = res.data;
+
+    // envelopeInterceptor đã unbox -> nhận thẳng LoginData
+    const d = await firstValueFrom(this.http.post<LoginData>(`${this.base}/auth/login`, body));
+
     this.setSession(
       { accessToken: d.accessToken, refreshToken: d.refreshToken },
       { id: String(d.userId), name: d.fullName, role: d.role, email: body.email },
@@ -76,7 +70,6 @@ export class AuthService {
     );
   }
 
-  /** Gọi BE /auth/refresh với refreshToken, trả về accessToken mới */
   refresh(): Promise<string> {
     if (this.refreshing) return this.refreshing;
 
@@ -84,22 +77,19 @@ export class AuthService {
     if (!rt) return Promise.reject(new Error('No refresh token'));
 
     this.refreshing = firstValueFrom(
-      this.http.post<Envelope<{ accessToken: string; refreshToken: string }>>(
-        `${this.base}/auth/refresh`,
-        { refreshToken: rt }
-      )
+      this.http.post<{ accessToken: string; refreshToken: string }>(`${this.base}/auth/refresh`, {
+        refreshToken: rt,
+      })
     )
       .then((res) => {
         const nextTokens: Tokens = {
-          accessToken: res.data.accessToken,
-          refreshToken: res.data.refreshToken,
+          accessToken: res.accessToken,
+          refreshToken: res.refreshToken,
         };
-        // giữ nguyên user hiện tại
         this.setSession(nextTokens, this._user()!, true);
         return nextTokens.accessToken;
       })
       .catch((e) => {
-        // refresh fail -> logout
         this.logout();
         throw e;
       })

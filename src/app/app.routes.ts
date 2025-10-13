@@ -10,8 +10,6 @@ import { ClassDetail } from './pages/class-detail/class-detail';
 import { ListPeople } from './pages/list-people/list-people';
 import { authGuard } from './core/guards/auth.guard';
 
-// const authGuard: CanActivateFn = () => inject(AuthService).isLoggedIn();
-
 export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./pages/login/login').then((m) => m.Login) },
   {

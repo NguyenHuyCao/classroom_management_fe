@@ -1,10 +1,12 @@
 {
   "name": "classroom-management-fe",
   "version": "0.0.0",
+  "private": true,
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
+    "start": "ng serve -c development -o",
+    "start:prod": "ng serve -c production",
+    "build": "ng build -c production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:classroom_management_fe": "node dist/classroom_management_fe/server/server.mjs"
@@ -21,7 +23,6 @@
       }
     ]
   },
-  "private": true,
   "dependencies": {
     "@angular/common": "^20.3.0",
     "@angular/compiler": "^20.3.0",

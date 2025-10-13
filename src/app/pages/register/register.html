@@ -1,3 +1,4 @@
+<!-- src/app/pages/register/register.html -->
 <div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-12 col-sm-10 col-md-8 col-lg-7 col-xl-6">
@@ -113,8 +114,8 @@
               </div>
               <div class="col-md-4">
                 <div class="form-floating">
-                  <input class="form-control" id="course" placeholder="Khóa 40" formControlName="course">
-                  <label for="course">Khóa</label>
+                  <input class="form-control" id="course" placeholder="K40" formControlName="course">
+                  <label for="course">Khóa (vd: K40)</label>
                 </div>
               </div>
 
@@ -131,10 +132,11 @@
                 </select>
               </div>
               <div class="col-md-4">
-                <div class="form-floating">
-                  <input type="number" class="form-control" id="admissionYear" placeholder="2022" formControlName="admissionYear">
-                  <label for="admissionYear">Năm nhập học</label>
-                </div>
+                <label class="form-label">Giới tính</label>
+                <select class="form-select" formControlName="gender">
+                  <option value="MALE">Nam</option>
+                  <option value="FEMALE">Nữ</option>
+                </select>
               </div>
             </div>
 

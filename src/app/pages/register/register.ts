@@ -1,3 +1,4 @@
+// src/app/pages/register/register.ts
 import { Component, inject } from '@angular/core';
 import { CommonModule, NgFor, NgIf } from '@angular/common';
 import {
@@ -9,6 +10,9 @@ import {
   FormGroup,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../core/auth.service';
+import { ApiError } from '../../core/interceptors/envelope.interceptor';
+import { ToastService } from '../../components/toast/toast.service';
 
 function sameAs(other: string) {
   return (ctrl: AbstractControl): ValidationErrors | null => {
@@ -32,6 +36,8 @@ type Role = 'student' | 'lecturer';
 export class Register {
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private auth = inject(AuthService);
+  private toast = inject(ToastService);
 
   loading = false;
   showPwd = false;
@@ -43,6 +49,7 @@ export class Register {
     { value: 'lecturer', label: 'Giảng viên' },
   ];
 
+  // Hiển thị cho người dùng (VI)
   majors = [
     'Khoa học máy tính',
     'Công nghệ thông tin',
@@ -52,6 +59,21 @@ export class Register {
   ];
   faculties = ['Khoa CNTT', 'Khoa Toán', 'Khoa Kinh tế', 'Khoa Ngôn ngữ'];
   academicRanks = ['ThS.', 'TS.', 'PGS.TS.', 'GS.TS.'];
+
+  // Map sang BE
+  private majorMap: Record<string, string> = {
+    'Khoa học máy tính': 'Computer Science',
+    'Công nghệ thông tin': 'Information Technology',
+    'Kỹ thuật phần mềm': 'Software Engineering',
+    'Hệ thống thông tin': 'Information Systems',
+    'An toàn thông tin': 'Information Security',
+  };
+  private rankMap: Record<string, string> = {
+    'ThS.': 'MSC',
+    'TS.': 'DR',
+    'PGS.TS.': 'ASSOC_PROF',
+    'GS.TS.': 'PROF',
+  };
 
   form = this.fb.nonNullable.group({
     role: <Role>'student',
@@ -68,16 +90,16 @@ export class Register {
     student: this.fb.nonNullable.group({
       studentId: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9]+$/)]],
       classCode: ['', [Validators.required]],
-      course: ['', [Validators.required]],
+      course: ['', [Validators.required]], // ví dụ: "K40"
       faculty: ['Khoa CNTT'],
       major: ['Khoa học máy tính', [Validators.required]],
-      admissionYear: [2022, [Validators.required, Validators.min(2000), Validators.max(2100)]],
+      gender: <'MALE' | 'FEMALE'>'MALE',
     }),
 
     lecturer: this.fb.nonNullable.group({
       lecturerId: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9\-]+$/)]],
       dept: ['Khoa CNTT', [Validators.required]],
-      title: ['TS.'],
+      title: ['TS.'], // sẽ map -> DR
       officePhone: ['', [Validators.pattern(/^[0-9]{9,11}$/)]],
       workEmail: ['', [Validators.email]],
       officeRoom: [''],
@@ -114,41 +136,33 @@ export class Register {
     }
   }
 
-  private buildPayload() {
+  /** Tạo payload đúng theo API BE */
+  private buildStudentPayload() {
     const v = this.form.getRawValue();
-    const base = {
-      role: v.role,
-      account: {
-        fullName: v.account.fullName,
-        username: v.account.username,
-        email: v.account.email,
-        phone: v.account.phone,
-        password: v.account.password,
-      },
+    return {
+      email: v.account.email,
+      password: v.account.password,
+      fullName: v.account.fullName,
+      phone: v.account.phone,
+      studentCode: v.student.studentId,
+      cohort: v.student.course, // vd: "K40"
+      major: this.majorMap[v.student.major] ?? v.student.major, // map VI -> EN nếu có
+      specializedClass: v.student.classCode,
+      gender: v.student.gender, // 'MALE' | 'FEMALE'
     };
-    return v.role === 'student'
-      ? {
-          ...base,
-          student: {
-            studentId: v.student.studentId,
-            classCode: v.student.classCode,
-            course: v.student.course,
-            faculty: v.student.faculty || null,
-            major: v.student.major,
-            admissionYear: v.student.admissionYear,
-          },
-        }
-      : {
-          ...base,
-          lecturer: {
-            lecturerId: v.lecturer.lecturerId,
-            dept: v.lecturer.dept,
-            title: v.lecturer.title || null,
-            officePhone: v.lecturer.officePhone || null,
-            workEmail: v.lecturer.workEmail || null,
-            officeRoom: v.lecturer.officeRoom || null,
-          },
-        };
+  }
+
+  private buildTeacherPayload() {
+    const v = this.form.getRawValue();
+    return {
+      email: v.account.email,
+      password: v.account.password,
+      fullName: v.account.fullName,
+      phone: v.account.phone,
+      lecturerCode: v.lecturer.lecturerId,
+      department: v.lecturer.dept,
+      academicRank: this.rankMap[v.lecturer.title] ?? v.lecturer.title, // map VI -> code
+    };
   }
 
   async submit() {
@@ -158,12 +172,22 @@ export class Register {
     }
     this.err = null;
     this.loading = true;
+
     try {
-      const payload = this.buildPayload();
-      await new Promise((res) => setTimeout(res, 700));
+      if (this.roleCtrl.value === 'student') {
+        await this.auth.registerStudent(this.buildStudentPayload());
+      } else {
+        await this.auth.registerTeacher(this.buildTeacherPayload());
+      }
+      this.toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
       this.router.navigateByUrl('/login');
-    } catch {
-      this.err = 'Đăng ký thất bại. Vui lòng thử lại.';
+    } catch (e: any) {
+      const msg =
+        e instanceof ApiError
+          ? e.message || 'Đăng ký thất bại.'
+          : e?.message || 'Đăng ký thất bại.';
+      this.err = msg;
+      this.toast.danger(msg);
     } finally {
       this.loading = false;
     }

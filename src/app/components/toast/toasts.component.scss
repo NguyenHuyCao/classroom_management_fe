@@ -1,0 +1,78 @@
+:root {
+  --tone-success: #16a34a;
+  --tone-info:    var(--accent-600, #2563eb);
+  --tone-warning: #f59e0b;
+  --tone-danger:  var(--brand-700, #b31a1f);
+}
+
+.cm-toasts{
+  position: fixed;
+  top: calc(var(--header-h, 64px) + 12px);
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.cm-toast{
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: 6px 1fr;
+  background: #fff;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 8px 30px rgba(0,0,0,.08);
+  overflow: hidden;
+  min-width: 340px;
+}
+
+/* Vạch màu trái theo type */
+.cm-toast.cm-success .cm-accent { background: var(--tone-success); }
+.cm-toast.cm-info    .cm-accent { background: var(--tone-info); }
+.cm-toast.cm-warning .cm-accent { background: var(--tone-warning); }
+.cm-toast.cm-danger  .cm-accent { background: var(--tone-danger); }
+
+/* Nội dung */
+.cm-body{ padding: 10px 12px 8px; }
+.cm-head{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+}
+.cm-title{ display:flex; align-items:center; gap:8px; color: var(--text-900, #0f172a); }
+.cm-title .bi{ font-size: 18px; }
+.cm-toast.cm-success .cm-title .bi { color: var(--tone-success); }
+.cm-toast.cm-info    .cm-title .bi { color: var(--tone-info); }
+.cm-toast.cm-warning .cm-title .bi { color: var(--tone-warning); }
+.cm-toast.cm-danger  .cm-title .bi { color: var(--tone-danger); }
+
+.cm-message{ margin-top: 4px; color: var(--text-700, #334155); }
+
+.btn-close{ opacity:.55; }
+.btn-close:hover{ opacity:.9; }
+
+.cm-progress{
+  height: 3px;
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 0 0 16px 16px;
+  animation-name: cm-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  background: currentColor;
+}
+
+.cm-toast.cm-success .cm-progress { color: var(--tone-success); }
+.cm-toast.cm-info    .cm-progress { color: var(--tone-info); }
+.cm-toast.cm-warning .cm-progress { color: var(--tone-warning); }
+.cm-toast.cm-danger  .cm-progress { color: var(--tone-danger); }
+
+@keyframes cm-progress { from { width: 100%; } to { width: 0; } }
+
+@media (max-width: 576px){
+  .cm-toasts{
+    top: auto;
+    left: 12px; right: 12px; bottom: 12px;
+  }
+  .cm-toast{ min-width: 0; width: 100%; }
+}

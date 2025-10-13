@@ -14,6 +14,7 @@ export interface User {
   role?: string;
   email?: string;
 }
+
 export interface LoginReq {
   email: string;
   password: string;
@@ -56,13 +57,10 @@ export class AuthService {
   user = () => this._user();
   isLoggedIn = () => !!this._tokens()?.accessToken;
 
+  // ------- AUTH: LOGIN / REFRESH (giữ nguyên logic bạn đang dùng) -------
   async login(p: { username: string; password: string; remember: boolean }) {
-    // BE nhận email, UI đang nhập "username" -> map sang email
     const body: LoginReq = { email: p.username, password: p.password, remember: p.remember };
-
-    // envelopeInterceptor đã unbox -> nhận thẳng LoginData
     const d = await firstValueFrom(this.http.post<LoginData>(`${this.base}/auth/login`, body));
-
     this.setSession(
       { accessToken: d.accessToken, refreshToken: d.refreshToken },
       { id: String(d.userId), name: d.fullName, role: d.role, email: body.email },
@@ -72,7 +70,6 @@ export class AuthService {
 
   refresh(): Promise<string> {
     if (this.refreshing) return this.refreshing;
-
     const rt = this._tokens()?.refreshToken;
     if (!rt) return Promise.reject(new Error('No refresh token'));
 
@@ -82,10 +79,7 @@ export class AuthService {
       })
     )
       .then((res) => {
-        const nextTokens: Tokens = {
-          accessToken: res.accessToken,
-          refreshToken: res.refreshToken,
-        };
+        const nextTokens: Tokens = { accessToken: res.accessToken, refreshToken: res.refreshToken };
         this.setSession(nextTokens, this._user()!, true);
         return nextTokens.accessToken;
       })
@@ -103,14 +97,40 @@ export class AuthService {
   private setSession(tokens: Tokens, user: User, remember: boolean) {
     this._tokens.set(tokens);
     this._user.set(user);
-    if (remember && this.isBrowser) {
-      localStorage.setItem('auth', JSON.stringify({ tokens, user }));
-    }
+    if (remember && this.isBrowser) localStorage.setItem('auth', JSON.stringify({ tokens, user }));
   }
 
   logout() {
     this._tokens.set(null);
     this._user.set(null);
     if (this.isBrowser) localStorage.removeItem('auth');
+  }
+
+  // -------------------- REGISTER APIs --------------------
+  registerStudent(p: {
+    email: string;
+    password: string;
+    fullName: string;
+    phone: string;
+    studentCode: string;
+    cohort: string;
+    major: string;
+    specializedClass: string;
+    gender: 'MALE' | 'FEMALE';
+  }) {
+    // envelopeInterceptor sẽ unwrap -> .post<void> hoặc .post<null> đều OK
+    return firstValueFrom(this.http.post<null>(`${this.base}/auth/register/student`, p));
+  }
+
+  registerTeacher(p: {
+    email: string;
+    password: string;
+    fullName: string;
+    phone: string;
+    lecturerCode: string;
+    department: string;
+    academicRank: string;
+  }) {
+    return firstValueFrom(this.http.post<null>(`${this.base}/auth/register/teacher`, p));
   }
 }

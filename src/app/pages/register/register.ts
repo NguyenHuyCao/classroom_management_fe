@@ -65,7 +65,6 @@ export class Register {
       confirm: ['', [Validators.required, Validators.minLength(6), sameAs('password')]],
     }),
 
-    // Nhánh Sinh viên
     student: this.fb.nonNullable.group({
       studentId: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9]+$/)]],
       classCode: ['', [Validators.required]],

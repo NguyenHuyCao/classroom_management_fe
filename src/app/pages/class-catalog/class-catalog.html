@@ -30,14 +30,6 @@
     </div>
 
     <div class="col-md-2">
-      <label class="form-label mb-1">Giảng viên</label>
-      <select class="form-select" (change)="onLecturer($event)">
-        <option value="ALL">Tất cả</option>
-        <option *ngFor="let l of lecturers()" [value]="l">{{ l }}</option>
-      </select>
-    </div>
-
-    <div class="col-md-2">
       <label class="form-label mb-1">Trạng thái</label>
       <select class="form-select" (change)="onStatus($event)">
         <option value="ALL">Tất cả</option>
@@ -45,23 +37,17 @@
         <option value="Offline">Offline</option>
       </select>
     </div>
-  </div>
 
-  <div class="row g-3 mt-2">
     <div class="col-md-2">
-      <label class="form-label mb-1">Kích thước trang</label>
-      <select class="form-select" (change)="onPageSize($event)">
-        <option [selected]="pageSize() == 10">10</option>
-        <option [selected]="pageSize() == 20">20</option>
-        <option [selected]="pageSize() == 50">50</option>
-      </select>
-    </div>
     <div class="col-md-10 text-md-end d-flex gap-2 justify-content-md-end align-items-end">
       <button class="btn btn-outline-secondary" (click)="exportCSV()">
-        <i class="bi bi-download"></i> Xuất CSV
+        <i class="bi bi-download"></i> Xuất PDF
       </button>
     </div>
   </div>
+  </div>
+
+  
 </div>
 
 <div class="row g-3 mb-3">

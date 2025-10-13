@@ -256,7 +256,6 @@ export class ClassManager {
 
     this.classes.update((list) => list.filter((c) => c.id !== item.id));
 
-    // đóng dialog + dọn state
     this.showConfirmDelete.set(false);
     this.classToDelete.set(null);
 

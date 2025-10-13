@@ -145,6 +145,7 @@ export class ClassDetail {
       return true;
     });
   });
+
   pageSize = signal<number>(10);
   pageIndex = signal<number>(1);
 

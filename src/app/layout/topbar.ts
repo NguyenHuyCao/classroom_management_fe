@@ -1,11 +1,11 @@
 import { Component, Renderer2 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { ConfirmDialog } from '../components/confirm/confirm-dialog';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [RouterLink, ConfirmDialog],
+  imports: [RouterLink, ConfirmDialog, RouterLinkActive],
   templateUrl: './topbar.html',
 })
 export class Topbar {

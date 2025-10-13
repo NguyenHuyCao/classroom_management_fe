@@ -59,6 +59,7 @@ body.sidebar-collapsed .app-navbar .container-fluid {
   padding: 0 10px 0 12px;
   overflow: hidden;
   transition: width 0.18s ease;
+  cursor: pointer;
 }
 @media (min-width: 992px) {
   .app-brand {

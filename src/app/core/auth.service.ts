@@ -13,7 +13,7 @@ export interface User {
   name: string;
   role?: string;
   email?: string;
-  code?: string | null; // mã SV/GV
+  code?: string | null;
 }
 export interface LoginReq {
   email: string;
@@ -40,6 +40,7 @@ export class AuthService {
 
   private base = environment.apiBaseUrl;
   private refreshing?: Promise<string>;
+  private refreshTimer: any;
 
   constructor() {
     if (!this.isBrowser) return;
@@ -49,6 +50,7 @@ export class AuthService {
         const { tokens, user } = JSON.parse(raw);
         this._tokens.set(tokens);
         this._user.set(user);
+        this.scheduleRefresh(tokens?.accessToken);
       } catch {}
     }
   }
@@ -85,15 +87,12 @@ export class AuthService {
       })
     )
       .then((res) => {
-        const nextTokens: Tokens = {
-          accessToken: res.accessToken,
-          refreshToken: res.refreshToken,
-        };
-        this.setSession(nextTokens, this._user()!, true);
+        const nextTokens: Tokens = { accessToken: res.accessToken, refreshToken: res.refreshToken };
+        this.setSession(nextTokens, this._user()!, true); // giữ trạng thái "remember"
         return nextTokens.accessToken;
       })
       .catch((e) => {
-        this.logout();
+        this.logout(); // quan trọng: dọn session nếu refresh fail
         throw e;
       })
       .finally(() => (this.refreshing = undefined));
@@ -104,6 +103,7 @@ export class AuthService {
   private setSession(tokens: Tokens, user: User, remember: boolean) {
     this._tokens.set(tokens);
     this._user.set(user);
+    this.scheduleRefresh(tokens.accessToken);
 
     if (!this.isBrowser) return;
     try {
@@ -115,14 +115,16 @@ export class AuthService {
         localStorage.removeItem('auth');
         sessionStorage.setItem('auth', payload);
       }
-    } catch {
-      // storage bị chặn -> vẫn cho chạy trong bộ nhớ
-    }
+    } catch {}
   }
 
   logout() {
     this._tokens.set(null);
     this._user.set(null);
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
     if (this.isBrowser) {
       try {
         localStorage.removeItem('auth');
@@ -133,7 +135,39 @@ export class AuthService {
     }
   }
 
-  // -------------------- REGISTER APIs --------------------
+  // ---------- helpers: auto refresh trước khi hết hạn ----------
+  private parseJwtExp(at: string | null): number | null {
+    if (!at) return null;
+    try {
+      const payload = at.split('.')[1];
+      const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+      return typeof json.exp === 'number' ? json.exp : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private scheduleRefresh(accessToken?: string | null) {
+    if (!this.isBrowser) return;
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+
+    const exp = this.parseJwtExp(accessToken ?? this._tokens()?.accessToken ?? null);
+    if (!exp) return;
+    // refresh trước khi hết hạn 60s
+    const ms = exp * 1000 - Date.now() - 60_000;
+    if (ms <= 0) return;
+
+    this.refreshTimer = setTimeout(() => {
+      this.refresh().catch(() => {
+        /* đã xử lý ở interceptor */
+      });
+    }, ms);
+  }
+
+  // -------------------- REGISTER APIs (giữ nguyên) --------------------
   registerStudent(p: {
     email: string;
     password: string;
@@ -147,7 +181,6 @@ export class AuthService {
   }) {
     return firstValueFrom(this.http.post<null>(`${this.base}/auth/register/student`, p));
   }
-
   registerTeacher(p: {
     email: string;
     password: string;
@@ -160,7 +193,6 @@ export class AuthService {
     return firstValueFrom(this.http.post<null>(`${this.base}/auth/register/teacher`, p));
   }
 
-  // -------------------- CHANGE PASSWORD --------------------
   changePassword(p: { currentPassword: string; newPassword: string }) {
     // Có authInterceptor => tự gắn Bearer token
     // envelopeInterceptor sẽ unwrap -> nhận null nếu success

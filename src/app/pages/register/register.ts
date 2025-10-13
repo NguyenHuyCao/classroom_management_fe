@@ -62,7 +62,7 @@ export class Register {
 
   // Map sang BE
   private majorMap: Record<string, string> = {
-    'Khoa học máy tính': 'Computer Science',
+    'Khoa học máy tính': 'Khoa học máy tính',
     'Công nghệ thông tin': 'Information Technology',
     'Kỹ thuật phần mềm': 'Software Engineering',
     'Hệ thống thông tin': 'Information Systems',

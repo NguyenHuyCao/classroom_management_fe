@@ -8,6 +8,7 @@ import { ClassManager } from './pages/class-manager/class-manager';
 import { ClassCatalog } from './pages/class-catalog/class-catalog';
 import { ClassDetail } from './pages/class-detail/class-detail';
 import { ListPeople } from './pages/list-people/list-people';
+import { authGuard } from './core/guards/auth.guard';
 
 // const authGuard: CanActivateFn = () => inject(AuthService).isLoggedIn();
 
@@ -24,6 +25,7 @@ export const routes: Routes = [
   {
     path: '',
     component: Shell,
+    canActivateChild: [authGuard],
     children: [
       { path: 'home', component: Home },
       { path: 'change-password', component: ChangePassword },

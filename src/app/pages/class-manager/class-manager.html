@@ -15,7 +15,11 @@
       </div>
       <div class="col-md-5">
         <label class="form-label">Tên lớp</label>
-        <input class="form-control" formControlName="name" placeholder="VD: Nhập môn Khoa học Máy tính - K40A" />
+        <input
+          class="form-control"
+          formControlName="name"
+          placeholder="VD: Nhập môn Khoa học Máy tính - K40A"
+        />
       </div>
       <div class="col-md-2">
         <label class="form-label">Môn học</label>
@@ -51,7 +55,11 @@
             </button>
           </div>
 
-          <div class="row g-2 align-items-end" formArrayName="schedule" *ngFor="let sch of scheduleArray.controls; let i = index">
+          <div
+            class="row g-2 align-items-end"
+            formArrayName="schedule"
+            *ngFor="let sch of scheduleArray.controls; let i = index"
+          >
             <div [formGroupName]="i" class="row g-2 align-items-end">
               <div class="col-md-2">
                 <label class="form-label mb-1">Thứ</label>
@@ -72,7 +80,12 @@
                 <input class="form-control" formControlName="room" placeholder="P203 / Online" />
               </div>
               <div class="col-md-2">
-                <button type="button" class="btn btn-outline-danger w-100" (click)="removeSchedule(i)" [disabled]="scheduleArray.length <= 1">
+                <button
+                  type="button"
+                  class="btn btn-outline-danger w-100"
+                  (click)="removeSchedule(i)"
+                  [disabled]="scheduleArray.length <= 1"
+                >
                   <i class="bi bi-trash"></i> Xóa
                 </button>
               </div>
@@ -83,8 +96,12 @@
       </div>
 
       <div class="col-12 text-end">
-        <button type="button" class="btn btn-outline-secondary me-2" (click)="startCreate()">Làm mới</button>
-        <button type="submit" class="btn btn-primary">{{ editingId() ? 'Cập nhật lớp' : 'Tạo lớp' }}</button>
+        <button type="button" class="btn btn-outline-secondary me-2" (click)="startCreate()">
+          Làm mới
+        </button>
+        <button type="submit" class="btn btn-primary">
+          {{ editingId() ? 'Cập nhật lớp' : 'Tạo lớp' }}
+        </button>
       </div>
     </div>
   </form>
@@ -94,12 +111,30 @@
 <div class="card-soft p-3 mb-4 mt-2" *ngIf="role() === 'STUDENT'">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h6 class="mb-0">Đăng ký lớp trong kỳ</h6>
-    <div class="d-flex gap-2 align-items-center">
-      <select class="form-select form-select-sm" style="width:auto" (change)="onSemesterChange($event)">
+
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <!-- Kỳ -->
+      <select
+        class="form-select form-select-sm"
+        style="width: auto"
+        (change)="onCatSemesterChange($event)"
+      >
         <option value="ALL">Tất cả kỳ</option>
         <option *ngFor="let s of semesters" [value]="s.value">{{ s.label }}</option>
       </select>
-      <input class="form-control form-control-sm" style="width:220px" placeholder="Tìm mã/tên/môn..." (input)="onSearchInput($event)" />
+
+      <!-- Môn -->
+      <input
+        class="form-control form-control-sm"
+        style="width: 180px"
+        placeholder="Nhập môn VD: CS101"
+        (input)="onCatSubjectInput($event)"
+      />
+
+      <!-- Nút tìm kiếm -->
+      <button class="btn btn-primary" (click)="applyCatalogFilters()">
+        <i class="bi bi-search"></i> Tìm kiếm
+      </button>
     </div>
   </div>
 
@@ -121,19 +156,34 @@
           <td class="fw-600">{{ c.code }}</td>
           <td class="text-start">{{ c.name }}</td>
           <td>{{ c.subject }}</td>
-          <td><span class="badge bg-sem">{{ c.semester }}</span></td>
           <td>
-            <span class="badge" [ngClass]="{ 'bg-online': c.status === 'Online', 'bg-offline': c.status === 'Offline' }">
+            <span class="badge bg-sem">{{ c.semester }}</span>
+          </td>
+          <td>
+            <span
+              class="badge"
+              [ngClass]="{
+                'bg-online': c.status === 'Online',
+                'bg-offline': c.status === 'Offline'
+              }"
+            >
               {{ c.status }}
             </span>
           </td>
           <td class="text-start">
             <div class="sch" *ngFor="let s of c.schedule">
-              <i class="bi bi-calendar2-week me-1"></i> Thứ {{ s.day }} • {{ s.start }}–{{ s.end }} • {{ s.room }}
+              <i class="bi bi-calendar2-week me-1"></i> Thứ {{ s.day }} • {{ s.start }}–{{
+                s.end
+              }}
+              • {{ s.room }}
             </div>
           </td>
           <td class="text-center">
-            <button class="btn btn-primary btn-sm" [disabled]="isEnrolled(c.id)" (click)="register(c)">
+            <button
+              class="btn btn-primary btn-sm"
+              [disabled]="isEnrolled(c.id)"
+              (click)="register(c)"
+            >
               {{ isEnrolled(c.id) ? 'Đã đăng ký' : 'Đăng ký' }}
             </button>
           </td>
@@ -172,12 +222,22 @@
           (keydown.enter)="goDetail(c.id)"
           (keydown.space)="goDetail(c.id)"
         >
-          <td><span class="fw-600">{{ c.code }}</span></td>
+          <td>
+            <span class="fw-600">{{ c.code }}</span>
+          </td>
           <td class="text-start">{{ c.name }}</td>
           <td>{{ c.subject }}</td>
-          <td><span class="badge bg-sem">{{ c.semester }}</span></td>
           <td>
-            <span class="badge" [ngClass]="{ 'bg-online': c.status === 'Online', 'bg-offline': c.status === 'Offline' }">
+            <span class="badge bg-sem">{{ c.semester }}</span>
+          </td>
+          <td>
+            <span
+              class="badge"
+              [ngClass]="{
+                'bg-online': c.status === 'Online',
+                'bg-offline': c.status === 'Offline'
+              }"
+            >
               {{ c.status }}
             </span>
           </td>
@@ -208,7 +268,9 @@
 
         <tr *ngIf="!paged().length">
           <td colspan="7" class="text-center text-muted">
-            {{ role() === 'TEACHER' ? 'Chưa có lớp nào bạn quản lý.' : 'Bạn chưa đăng ký lớp nào.' }}
+            {{
+              role() === 'TEACHER' ? 'Chưa có lớp nào bạn quản lý.' : 'Bạn chưa đăng ký lớp nào.'
+            }}
           </td>
         </tr>
       </tbody>
@@ -220,9 +282,13 @@
       Tổng: {{ filtered().length }} lớp • Trang {{ pageIndex() }}/{{ totalPages() }}
     </div>
     <div class="btn-group">
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() - 1)">&laquo;</button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() - 1)">
+        &laquo;
+      </button>
       <button class="btn btn-outline-secondary btn-sm" disabled>{{ pageIndex() }}</button>
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() + 1)">&raquo;</button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() + 1)">
+        &raquo;
+      </button>
     </div>
   </div>
 </div>
@@ -231,7 +297,13 @@
 <app-confirm-dialog
   [open]="showConfirmDelete()"
   title="Xoá lớp học"
-  [message]="'Bạn có chắc muốn xoá lớp ' + (classToDelete()?.name || '') + ' (' + (classToDelete()?.code || '') + ')? Hành động không thể hoàn tác.'"
+  [message]="
+    'Bạn có chắc muốn xoá lớp ' +
+    (classToDelete()?.name || '') +
+    ' (' +
+    (classToDelete()?.code || '') +
+    ')? Hành động không thể hoàn tác.'
+  "
   confirmText="Xoá"
   cancelText="Hủy"
   tone="danger"
@@ -244,7 +316,13 @@
 <app-confirm-dialog
   [open]="showConfirmDrop()"
   title="Hủy ghi danh"
-  [message]="'Bạn có chắc muốn hủy lớp ' + (classToDrop()?.name || '') + ' (' + (classToDrop()?.code || '') + ')?'"
+  [message]="
+    'Bạn có chắc muốn hủy lớp ' +
+    (classToDrop()?.name || '') +
+    ' (' +
+    (classToDrop()?.code || '') +
+    ')?'
+  "
   confirmText="Hủy ghi danh"
   cancelText="Đóng"
   tone="danger"

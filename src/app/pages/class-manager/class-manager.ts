@@ -114,6 +114,10 @@ export class ClassManager {
 
   // filters/paging cho BẢNG TRÊN (catalog) – chỉ dùng khi STUDENT
   catSearch = signal<string>('');
+  catSubject = signal<string | 'ALL'>('ALL');
+
+  catSemester = signal<Semester | 'ALL'>('ALL');
+  catSubjectText = signal<string>('');
   catPageSize = signal<number>(8);
   catPageIndex = signal<number>(1);
 
@@ -222,16 +226,16 @@ export class ClassManager {
 
   // ------------- computed: bảng TRÊN (catalog – SV) -------------
   catalogFiltered = computed(() => {
-    const q = this.catSearch().trim().toLowerCase();
     let data = this.catalog();
-    if (q) {
-      data = data.filter(
-        (c) =>
-          c.code.toLowerCase().includes(q) ||
-          c.name.toLowerCase().includes(q) ||
-          c.subject.toLowerCase().includes(q)
-      );
+
+    const sem = this.catSemester();
+    if (sem !== 'ALL') data = data.filter((c) => c.semester === sem);
+
+    const subj = this.catSubjectText().trim().toLowerCase();
+    if (subj) {
+      data = data.filter((c) => c.subject.toLowerCase().includes(subj));
     }
+
     return [...data].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
   });
 
@@ -265,6 +269,25 @@ export class ClassManager {
   onCatalogPageSizeChange(e: Event) {
     const v = Number((e.target as HTMLSelectElement | null)?.value ?? 8);
     this.catPageSize.set(v);
+  }
+
+  onCatSemesterChange(e: Event) {
+    const v = (e.target as HTMLSelectElement | null)?.value as Semester | 'ALL' | undefined;
+    if (v) this.catSemester.set(v);
+  }
+
+  onCatSubjectChange(e: Event) {
+    const v = (e.target as HTMLSelectElement | null)?.value as string | 'ALL' | undefined;
+    if (v) this.catSubject.set(v);
+  }
+
+  // Khi người dùng bấm nút "Tìm kiếm"
+  applyCatalogFilters() {
+    this.catPageIndex.set(1);
+  }
+
+  onCatSubjectInput(e: Event) {
+    this.catSubjectText.set(((e.target as HTMLInputElement)?.value || '').trim());
   }
 
   goPage(i: number) {

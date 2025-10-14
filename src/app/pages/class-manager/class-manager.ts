@@ -1,16 +1,11 @@
 import { Component, computed, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  FormArray,
-  FormBuilder,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
-import { SectionTitleComponent } from '../../components/title/section-title.component';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { HttpClient, HttpClientModule, HttpParams } from '@angular/common/http';
+import { SectionTitleComponent } from '../../components/title/section-title.component';
 import { ConfirmDialog } from '../../components/confirm/confirm-dialog';
+import { ToastService } from '../../components/toast/toast.service';
 
 type Status = 'Online' | 'Offline';
 type Semester = 'HK1' | 'HK2' | 'HK He';
@@ -18,11 +13,10 @@ type Role = 'TEACHER' | 'STUDENT';
 
 interface ScheduleItem {
   day: number; // 2..7
-  start: string; // HH:mm
-  end: string; // HH:mm
-  room: string; // "P203" | "Online"
+  start: string;
+  end: string;
+  room: string;
 }
-
 interface ClassItem {
   id: string;
   code: string;
@@ -31,97 +25,88 @@ interface ClassItem {
   semester: Semester;
   status: Status;
   size: number;
-  students: string[];
   schedule: ScheduleItem[];
   createdAt: string; // ISO
+  teacher?: string;
+  canEnroll?: boolean;
+  cannotReason?: string | null;
 }
+
+type PageResponse<T> = {
+  page: number;
+  size: number;
+  totalPages: number;
+  totalElements: number;
+  items: T[];
+};
 
 @Component({
   selector: 'app-class-manager',
   standalone: true,
-  imports: [SectionTitleComponent, CommonModule, ReactiveFormsModule, ConfirmDialog],
+  imports: [CommonModule, ReactiveFormsModule, SectionTitleComponent, ConfirmDialog],
   templateUrl: './class-manager.html',
   styleUrls: ['./class-manager.scss'],
 })
 export class ClassManager {
-  // ---------------- Role ----------------
-  role = signal<Role>('TEACHER'); // fallback TEACHER cho dev
+  private readonly API = 'http://localhost:8080/api/v1/classes';
 
+  // ---------------- Role ----------------
+  role = signal<Role>('TEACHER');
   private readRoleFromStorage(): Role | null {
     try {
       const raw = localStorage.getItem('auth');
       if (!raw) return null;
-      const obj = JSON.parse(raw);
-      const r = String(obj?.user?.role ?? '').toUpperCase();
-      if (r === 'TEACHER' || r === 'STUDENT') return r as Role;
-      return null;
+      const r = String(JSON.parse(raw)?.user?.role ?? '').toUpperCase();
+      return r === 'TEACHER' || r === 'STUDENT' ? (r as Role) : null;
     } catch {
       return null;
     }
   }
 
-  // ---------------- Mock data ----------------
-  private catalogData: ClassItem[] = [
-    {
-      id: crypto.randomUUID(),
-      code: 'CS101-K40A',
-      name: 'Nhập môn Khoa học Máy tính - K40A',
-      subject: 'CS101',
-      semester: 'HK1',
-      status: 'Offline',
-      size: 45,
-      students: ['SV0001', 'SV0002', 'SV0003'],
-      schedule: [
-        { day: 2, start: '08:00', end: '10:00', room: 'P203' },
-        { day: 5, start: '08:00', end: '10:00', room: 'P203' },
-      ],
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: crypto.randomUUID(),
-      code: 'ML113-K40B',
-      name: 'Triết học Mác-Lênin - K40B',
-      subject: 'ML113',
-      semester: 'HK2',
-      status: 'Online',
-      size: 60,
-      students: ['SV0021', 'SV0022'],
-      schedule: [{ day: 3, start: '18:00', end: '20:00', room: 'Online' }],
-      createdAt: new Date().toISOString(),
-    },
-  ];
+  // ---------------- State: My classes (server paging) ----------------
+  pageIndex = signal(1);
+  pageSize = signal(10);
+  myLoading = signal(false);
+  myError = signal<string | null>(null);
+  private mySnapshot = signal<{ items: ClassItem[]; totalPages: number; totalElements: number }>({
+    items: [],
+    totalPages: 1,
+    totalElements: 0,
+  });
+  paged = computed(() => this.mySnapshot().items);
+  totalPages = computed(() => Math.max(1, this.mySnapshot().totalPages));
+  myTotal = computed(() => this.mySnapshot().totalElements);
+  submitting = signal(false);
 
-  // ---------------- State ----------------
-  myClasses = signal<ClassItem[]>([]);
-  catalog = signal<ClassItem[]>(this.catalogData);
-
-  // form (khởi tạo trong constructor để không bị TS2729)
-  form!: FormGroup;
-  editingId = signal<string | null>(null);
-
-  // confirm dialogs
-  showConfirmDelete = signal<boolean>(false);
-  classToDelete = signal<ClassItem | null>(null);
-
-  showConfirmDrop = signal<boolean>(false);
-  classToDrop = signal<ClassItem | null>(null);
-
-  // filters/paging cho BẢNG DƯỚI (myClasses)
-  search = signal<string>('');
-  semesterFilter = signal<Semester | 'ALL'>('ALL');
-  pageSize = signal<number>(8);
-  pageIndex = signal<number>(1);
-
-  // filters/paging cho BẢNG TRÊN (catalog) – chỉ dùng khi STUDENT
-  catSearch = signal<string>('');
-  catSubject = signal<string | 'ALL'>('ALL');
-
+  // ---------------- State: Catalog (student, server paging) ----------------
+  catPageIndex = signal(1);
+  catPageSize = signal(8);
   catSemester = signal<Semester | 'ALL'>('ALL');
   catSubjectText = signal<string>('');
-  catPageSize = signal<number>(8);
-  catPageIndex = signal<number>(1);
+  catalogLoading = signal(false);
+  catalogError = signal<string | null>(null);
+  private catalogSnapshot = signal<{
+    items: ClassItem[];
+    totalPages: number;
+    totalElements: number;
+  }>({ items: [], totalPages: 1, totalElements: 0 });
+  catalogPaged = computed(() => this.catalogSnapshot().items);
+  catalogTotalPages = computed(() => Math.max(1, this.catalogSnapshot().totalPages));
 
-  // options
+  // ---------------- Form (teacher) ----------------
+  form: FormGroup;
+  editingId = signal<string | null>(null);
+
+  // Dialogs
+  showConfirmDelete = signal(false);
+  classToDelete = signal<ClassItem | null>(null);
+  showConfirmDrop = signal(false);
+  classToDrop = signal<ClassItem | null>(null);
+
+  detailEnrolled = signal<number>(0);
+  canChangeCourse = signal<boolean>(true);
+
+  // Options
   semesters: { label: string; value: Semester }[] = [
     { label: 'Học kỳ 1', value: 'HK1' },
     { label: 'Học kỳ 2', value: 'HK2' },
@@ -138,156 +123,330 @@ export class ClassManager {
   statuses: Status[] = ['Online', 'Offline'];
   subjectsRef = ['CS100', 'CS101', 'ML113', 'ML114', 'MA101', 'SE201'];
 
-  constructor(private fb: FormBuilder, private router: Router) {
-    // role
+  constructor(
+    private fb: FormBuilder,
+    private http: HttpClient,
+    private router: Router,
+    private toast: ToastService
+  ) {
     const r = this.readRoleFromStorage();
     if (r) this.role.set(r);
 
-    // form init (đặt ở đây để không còn TS2729)
-    this.form = this.fb.group({
-      code: ['', [Validators.required, Validators.maxLength(30)]],
-      name: ['', [Validators.required, Validators.maxLength(120)]],
-      subject: ['', Validators.required],
-      semester: ['HK1', Validators.required],
-      status: ['Offline', Validators.required],
-      size: [40, [Validators.required, Validators.min(1), Validators.max(500)]],
-      studentsInput: [''],
-      students: this.fb.array<string>([]),
-      schedule: this.fb.array<
-        FormGroup<{
-          day: FormControl<number>;
-          start: FormControl<string>;
-          end: FormControl<string>;
-          room: FormControl<string>;
-        }>
-      >([]),
-    });
-
+    this.form = this.fb.group(
+      {
+        code: ['', [Validators.required, Validators.maxLength(30)]],
+        name: ['', [Validators.required, Validators.maxLength(120)]],
+        subject: ['', Validators.required],
+        semester: ['HK1', Validators.required],
+        status: ['Offline', Validators.required],
+        size: [40, [Validators.required, Validators.min(1), Validators.max(500)]],
+        year: [new Date().getFullYear(), [Validators.required, Validators.min(2000)]],
+        startDate: ['', Validators.required], // yyyy-MM-dd
+        locationNote: [''],
+        note: [''],
+        schedule: this.fb.array<FormGroup<any>>([]),
+      },
+      { validators: [this.yearMatchesStartDateValidator()] }
+    );
     if (this.scheduleArray.length === 0) this.addSchedule();
 
-    // thay đổi filter -> về trang 1
     effect(() => {
-      this.search();
-      this.semesterFilter();
-      this.pageIndex.set(1);
+      this.pageIndex();
+      this.pageSize();
+      this.loadMyClasses();
     });
     effect(() => {
-      this.catSearch();
-      this.catPageIndex.set(1);
+      this.catPageIndex();
+      this.catPageSize();
+      if (this.role() === 'STUDENT') this.loadCatalog();
     });
   }
 
-  // lifecycle
+  private yearMatchesStartDateValidator() {
+    return (group: FormGroup) => {
+      const y = Number(group.get('year')?.value);
+      const sd = String(group.get('startDate')?.value || '');
+      if (!y || !sd) return null;
+      const dt = new Date(sd);
+      return dt.getFullYear() === y ? null : { yearMismatch: true };
+    };
+  }
+
   ngOnInit() {
-    if (this.role() === 'TEACHER') {
-      // demo: thầy có sẵn 2 lớp
-      this.myClasses.set(this.catalogData.map((c) => ({ ...c })));
-    } else {
-      this.myClasses.set([]); // SV: chưa đăng ký gì
-    }
+    this.loadMyClasses();
+    if (this.role() === 'STUDENT') this.loadCatalog();
   }
 
-  // ------------- getters -------------
+  // ---------- helpers ----------
   get scheduleArray() {
     return this.form.get('schedule') as FormArray;
   }
-  get studentsArray() {
-    return this.form.get('students') as FormArray;
+
+  /** Parse "Thứ 2 • 08:00–10:00 • P203" */
+  private parseScheduleLine(line: string): ScheduleItem {
+    const [d, t, r] = (line || '').split('•').map((s) => s.trim());
+    const m = d?.match(/(\d+)/);
+    const day = m ? Number(m[1]) : 2;
+    const [start, end] = (t || '').split('–').map((s) => s.trim());
+    const room = (r || '').trim();
+    return { day, start: start || '', end: end || '', room };
   }
 
-  // ------------- computed: bảng DƯỚI (myClasses) -------------
-  private tableSource = computed<ClassItem[]>(() => this.myClasses());
+  /** Map row từ API /me */
+  private mapMyRow(row: any): ClassItem {
+    const semCode = String(row.semesterCode || '').toUpperCase();
+    const sem: Semester = (semCode === 'HKHE' ? 'HK He' : (semCode as Semester)) || 'HK1';
+    const mode = String(row.deliveryMode || '').toUpperCase();
+    const st: Status = mode === 'ONLINE' ? 'Online' : 'Offline';
 
-  filtered = computed(() => {
-    const q = this.search().trim().toLowerCase();
-    const sem = this.semesterFilter();
-    let data = this.tableSource();
-    if (sem !== 'ALL') data = data.filter((c) => c.semester === sem);
-    if (q) {
-      data = data.filter(
-        (c) =>
-          c.code.toLowerCase().includes(q) ||
-          c.name.toLowerCase().includes(q) ||
-          c.subject.toLowerCase().includes(q)
-      );
+    return {
+      id: row.classCode,
+      code: row.classCode,
+      name: row.className,
+      subject: row.courseCode,
+      semester: sem,
+      status: st,
+      size: Number(row.capacity ?? 0),
+      schedule: (row.schedules || []).map((s: string) => this.parseScheduleLine(s)),
+      createdAt: typeof row.createdAt === 'string' ? row.createdAt : new Date().toISOString(),
+    };
+  }
+
+  /** Map row từ API /catalog */
+  private mapCatalogRow(row: any): ClassItem {
+    return {
+      ...this.mapMyRow(row),
+      teacher: row.teacherName ?? '—',
+      canEnroll: !!row.canEnroll,
+      cannotReason: row.cannotReason ?? null,
+    };
+  }
+
+  reasonText(reason?: string | null) {
+    switch ((reason || '').toUpperCase()) {
+      case 'STARTED':
+        return 'Đã bắt đầu';
+      case 'FULL':
+        return 'Đã đủ chỗ';
+      case 'ALREADY_ENROLLED':
+        return 'Đã đăng ký';
+      default:
+        return 'Đăng ký';
     }
-    return [...data].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-  });
+  }
 
-  paged = computed(() => {
-    const data = this.filtered();
-    const size = this.pageSize();
-    const idx = this.pageIndex();
-    const start = (idx - 1) * size;
-    return data.slice(start, start + size);
-  });
+  // ===================== API calls =====================
 
-  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize())));
+  // My classes (teacher/student)
+  private loadMyClasses() {
+    this.myLoading.set(true);
+    this.myError.set(null);
+    const params = new HttpParams()
+      .set('page', String(this.pageIndex() - 1))
+      .set('size', String(this.pageSize()));
+    this.http.get<any>(`${this.API}/me`, { params }).subscribe({
+      next: (res) => {
+        // hỗ trợ 2 format: {data:{...}} hoặc {...}
+        const page = (res?.data ?? res) as PageResponse<any>;
+        const items = (page.items || []).map((r: any) => this.mapMyRow(r));
+        this.mySnapshot.set({
+          items,
+          totalPages: page.totalPages ?? 1,
+          totalElements: page.totalElements ?? items.length,
+        });
+      },
+      error: (e) => this.myError.set(e?.message || 'Không tải được danh sách lớp của bạn.'),
+      complete: () => this.myLoading.set(false),
+    });
+  }
 
-  // ------------- computed: bảng TRÊN (catalog – SV) -------------
-  catalogFiltered = computed(() => {
-    let data = this.catalog();
-
+  // Catalog (student)
+  private loadCatalog() {
+    this.catalogLoading.set(true);
+    this.catalogError.set(null);
+    let params = new HttpParams()
+      .set('page', String(this.catPageIndex() - 1))
+      .set('size', String(this.catPageSize()));
     const sem = this.catSemester();
-    if (sem !== 'ALL') data = data.filter((c) => c.semester === sem);
+    if (sem !== 'ALL') params = params.set('semester', sem);
+    const subj = this.catSubjectText().trim();
+    if (subj) params = params.set('course', subj);
 
-    const subj = this.catSubjectText().trim().toLowerCase();
-    if (subj) {
-      data = data.filter((c) => c.subject.toLowerCase().includes(subj));
+    this.http.get<any>(`${this.API}/catalog`, { params }).subscribe({
+      next: (res) => {
+        const page = (res?.data ?? res) as PageResponse<any>;
+        const items = (page.items || []).map((r: any) => this.mapCatalogRow(r));
+        this.catalogSnapshot.set({
+          items,
+          totalPages: page.totalPages ?? 1,
+          totalElements: page.totalElements ?? items.length,
+        });
+      },
+      error: (e) => this.catalogError.set(e?.message || 'Không tải được catalog.'),
+      complete: () => this.catalogLoading.set(false),
+    });
+  }
+
+  // ---------- Create & Update (teacher) ----------
+  private buildPayload() {
+    const raw = this.form.getRawValue();
+    const isOnline = raw.status === 'Online';
+    return {
+      classCode: raw.code,
+      className: raw.name,
+      courseCode: raw.subject,
+      semesterCode: raw.semester === 'HK He' ? 'HKHE' : raw.semester,
+      academicYear: Number(raw.year),
+      deliveryMode: isOnline ? 'ONLINE' : 'OFFLINE',
+      capacity: Number(raw.size),
+      startDate: String(raw.startDate),
+      locationNote: raw.locationNote || null,
+      note: raw.note || null,
+      schedules: (raw.schedule as ScheduleItem[]).map((s) => ({
+        weekdayNo: s.day,
+        startTime: s.start,
+        endTime: s.end,
+        roomCode: isOnline ? 'Online' : s.room,
+        link: isOnline ? s.room : '',
+      })),
+    };
+  }
+
+  createClass() {
+    if (this.role() !== 'TEACHER') return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      if (this.form.errors?.['yearMismatch']) {
+        this.toast.danger('Năm học phải trùng với năm của Ngày bắt đầu');
+      }
+      return;
     }
-
-    return [...data].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-  });
-
-  catalogPaged = computed(() => {
-    const data = this.catalogFiltered();
-    const size = this.catPageSize();
-    const idx = this.catPageIndex();
-    const start = (idx - 1) * size;
-    return data.slice(start, start + size);
-  });
-
-  catalogTotalPages = computed(() =>
-    Math.max(1, Math.ceil(this.catalogFiltered().length / this.catPageSize()))
-  );
-
-  // ------------- UI handlers (fix NG5002) -------------
-  onSearchInput(e: Event) {
-    this.search.set((e.target as HTMLInputElement).value);
-  }
-  onCatalogSearchInput(e: Event) {
-    this.catSearch.set((e.target as HTMLInputElement).value);
-  }
-  onPageSizeChange(e: Event) {
-    const v = Number((e.target as HTMLSelectElement | null)?.value ?? 8);
-    this.pageSize.set(v);
-  }
-  onSemesterChange(e: Event) {
-    const v = (e.target as HTMLSelectElement | null)?.value as Semester | 'ALL' | undefined;
-    if (v) this.semesterFilter.set(v);
-  }
-  onCatalogPageSizeChange(e: Event) {
-    const v = Number((e.target as HTMLSelectElement | null)?.value ?? 8);
-    this.catPageSize.set(v);
+    const body = this.buildPayload();
+    this.submitting.set(true);
+    this.http.post(this.API, body).subscribe({
+      next: () => {
+        this.toast.success('Tạo lớp thành công');
+        this.startCreate();
+        this.loadMyClasses();
+        if (this.role() === 'STUDENT') this.loadCatalog();
+      },
+      error: (e) => this.toast.danger(e?.error?.message || e?.message || 'Tạo lớp thất bại'),
+      complete: () => this.submitting.set(false),
+    });
   }
 
+  updateClass() {
+    if (this.role() !== 'TEACHER') return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      if (this.form.errors?.['yearMismatch']) {
+        this.toast.danger('Năm học phải trùng với năm của Ngày bắt đầu');
+      }
+      return;
+    }
+    const editingKey = this.editingId();
+    if (!editingKey) return;
+
+    const body = this.buildPayload();
+    const updateBody: any = {
+      className: body.className,
+      semesterCode: body.semesterCode,
+      academicYear: body.academicYear,
+      deliveryMode: body.deliveryMode,
+      capacity: body.capacity,
+      startDate: body.startDate,
+      locationNote: body.locationNote,
+      note: body.note,
+      schedules: body.schedules,
+    };
+    if (this.canChangeCourse()) updateBody.courseCode = body.courseCode;
+
+    this.submitting.set(true);
+    this.http.put(`${this.API}/${encodeURIComponent(editingKey)}`, updateBody).subscribe({
+      next: () => {
+        this.toast.success('Cập nhật lớp thành công');
+        this.startCreate();
+        this.loadMyClasses();
+        if (this.role() === 'STUDENT') this.loadCatalog();
+      },
+      error: (e) => this.toast.danger(e?.error?.message || e?.message || 'Cập nhật thất bại'),
+      complete: () => this.submitting.set(false),
+    });
+  }
+
+  // ---------- Delete / Enroll ----------
+  askDelete(item: ClassItem) {
+    if (this.role() !== 'TEACHER') return;
+    this.classToDelete.set(item);
+    this.showConfirmDelete.set(true);
+  }
+  confirmDelete() {
+    const item = this.classToDelete();
+    if (!item) return;
+    this.http.delete(`${this.API}/${encodeURIComponent(item.code)}`).subscribe({
+      next: () => {
+        this.toast.success('Đã xoá lớp');
+        this.showConfirmDelete.set(false);
+        this.classToDelete.set(null);
+        this.loadMyClasses();
+      },
+      error: (e) => this.toast.danger(e?.message || 'Xoá thất bại'),
+    });
+  }
+  cancelDelete() {
+    this.showConfirmDelete.set(false);
+    this.classToDelete.set(null);
+  }
+
+  isEnrolled = (classId: string) => this.paged().some((c) => c.id === classId);
+
+  register(item: ClassItem) {
+    if (this.role() !== 'STUDENT') return;
+    this.http.post(`${this.API}/${encodeURIComponent(item.code)}/enroll`, null).subscribe({
+      next: () => {
+        this.toast.success('Đăng ký thành công');
+        this.loadMyClasses();
+        this.loadCatalog();
+      },
+      error: (e) => this.toast.danger(e?.message || 'Đăng ký thất bại'),
+    });
+  }
+
+  askDrop(item: ClassItem) {
+    if (this.role() !== 'STUDENT') return;
+    this.classToDrop.set(item);
+    this.showConfirmDrop.set(true);
+  }
+  confirmDrop() {
+    const item = this.classToDrop();
+    if (!item) return;
+    this.http.delete(`${this.API}/${encodeURIComponent(item.code)}/enroll`).subscribe({
+      next: () => {
+        this.toast.success('Đã hủy ghi danh');
+        this.showConfirmDrop.set(false);
+        this.classToDrop.set(null);
+        this.loadMyClasses();
+        this.loadCatalog();
+      },
+      error: (e) => this.toast.danger(e?.message || 'Hủy ghi danh thất bại'),
+    });
+  }
+  cancelDrop() {
+    this.showConfirmDrop.set(false);
+    this.classToDrop.set(null);
+  }
+
+  // ---------- UI handlers ----------
   onCatSemesterChange(e: Event) {
     const v = (e.target as HTMLSelectElement | null)?.value as Semester | 'ALL' | undefined;
     if (v) this.catSemester.set(v);
   }
-
-  onCatSubjectChange(e: Event) {
-    const v = (e.target as HTMLSelectElement | null)?.value as string | 'ALL' | undefined;
-    if (v) this.catSubject.set(v);
-  }
-
-  // Khi người dùng bấm nút "Tìm kiếm"
-  applyCatalogFilters() {
-    this.catPageIndex.set(1);
-  }
-
   onCatSubjectInput(e: Event) {
     this.catSubjectText.set(((e.target as HTMLInputElement)?.value || '').trim());
+  }
+  applyCatalogFilters() {
+    this.catPageIndex.set(1);
+    this.loadCatalog();
   }
 
   goPage(i: number) {
@@ -301,13 +460,17 @@ export class ClassManager {
     this.catPageIndex.set(i);
   }
 
-  goDetail(id: string) {
-    this.router.navigate(['/class-detail', id]);
+  goDetail(code: string) {
+    this.router.navigate(['/class-detail', code]);
   }
 
-  // ------------- TEACHER: form -------------
+  // ---------- form helpers ----------
   startCreate() {
     this.editingId.set(null);
+    this.detailEnrolled.set(0);
+    this.canChangeCourse.set(true);
+    this.submitting.set(false);
+
     this.form.reset({
       code: '',
       name: '',
@@ -315,111 +478,73 @@ export class ClassManager {
       semester: 'HK1',
       status: 'Offline',
       size: 40,
-      studentsInput: '',
+      year: new Date().getFullYear(),
+      startDate: '',
+      locationNote: '',
+      note: '',
     });
+
+    this.form.get('code')?.enable();
+    this.form.get('subject')?.enable();
+
     this.clearFormArray(this.scheduleArray);
-    this.clearFormArray(this.studentsArray);
     this.addSchedule();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   startEdit(item: ClassItem) {
-    this.editingId.set(item.id);
-    this.form.patchValue({
-      code: item.code,
-      name: item.name,
-      subject: item.subject,
-      semester: item.semester,
-      status: item.status,
-      size: item.size,
-      studentsInput: '',
+    this.editingId.set(item.code);
+
+    this.http.get<any>(`${this.API}/${encodeURIComponent(item.code)}`).subscribe({
+      next: (d) => {
+        this.detailEnrolled.set(Number(d.enrolled ?? 0));
+        this.canChangeCourse.set((this.detailEnrolled() ?? 0) === 0);
+
+        this.form.patchValue({
+          code: d.classCode,
+          name: d.className,
+          subject: d.courseCode,
+          semester: d.semesterCode === 'HKHE' ? 'HK He' : d.semesterCode,
+          status: (String(d.deliveryMode || '').toUpperCase() === 'ONLINE'
+            ? 'Online'
+            : 'Offline') as Status,
+          size: d.capacity,
+          year: d.academicYear,
+          startDate: d.startDate || '',
+          locationNote: d.locationNote || '',
+          note: d.note || '',
+        });
+
+        const schedules = (d.schedules || []).map((s: any) => ({
+          day: Number(s.weekdayNo),
+          start: s.startTime,
+          end: s.endTime,
+          room: s.roomCode || s.link || '',
+        }));
+        this.setSchedules(schedules);
+
+        this.form.get('code')?.disable();
+        if (!this.canChangeCourse()) this.form.get('subject')?.disable();
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+      error: () => {
+        this.form.patchValue({
+          code: item.code,
+          name: item.name,
+          subject: item.subject,
+          semester: item.semester,
+          status: item.status,
+          size: item.size,
+        });
+        this.setSchedules(item.schedule);
+        this.form.get('code')?.disable();
+      },
     });
-    this.setSchedules(item.schedule);
-    this.setStudents(item.students);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  save() {
-    if (this.role() !== 'TEACHER') return;
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-    const v = this.form.value;
-    const newItem: ClassItem = {
-      id: this.editingId() ?? crypto.randomUUID(),
-      code: v.code!,
-      name: v.name!,
-      subject: v.subject!,
-      semester: v.semester!,
-      status: v.status!,
-      size: Number(v.size),
-      students: (v.students as string[]) ?? [],
-      schedule: (v.schedule as ScheduleItem[]) ?? [],
-      createdAt: this.editingId()
-        ? this.myClasses().find((c) => c.id === this.editingId())?.createdAt ??
-          new Date().toISOString()
-        : new Date().toISOString(),
-    };
-
-    if (this.editingId()) {
-      this.myClasses.update((list) => list.map((c) => (c.id === this.editingId() ? newItem : c)));
-    } else {
-      this.myClasses.update((list) => [newItem, ...list]);
-    }
-    this.startCreate();
-  }
-
-  askDelete(item: ClassItem) {
-    if (this.role() !== 'TEACHER') return;
-    this.classToDelete.set(item);
-    this.showConfirmDelete.set(true);
-  }
-  confirmDelete() {
-    const item = this.classToDelete();
-    if (!item) return;
-    this.myClasses.update((list) => list.filter((c) => c.id !== item.id));
-    this.showConfirmDelete.set(false);
-    this.classToDelete.set(null);
-    const total = Math.max(1, Math.ceil(this.filtered().length / this.pageSize()));
-    if (this.pageIndex() > total) this.pageIndex.set(total);
-  }
-  cancelDelete() {
-    this.showConfirmDelete.set(false);
-    this.classToDelete.set(null);
-  }
-
-  // ------------- STUDENT: đăng ký/hủy -------------
-  isEnrolled = (classId: string) => this.myClasses().some((c) => c.id === classId);
-
-  register(item: ClassItem) {
-    if (this.role() !== 'STUDENT') return;
-    if (this.isEnrolled(item.id)) return;
-    this.myClasses.update((list) => [{ ...item }, ...list]);
-  }
-
-  askDrop(item: ClassItem) {
-    if (this.role() !== 'STUDENT') return;
-    this.classToDrop.set(item);
-    this.showConfirmDrop.set(true);
-  }
-  confirmDrop() {
-    const item = this.classToDrop();
-    if (!item) return;
-    this.myClasses.update((list) => list.filter((c) => c.id !== item.id));
-    this.showConfirmDrop.set(false);
-    this.classToDrop.set(null);
-    const total = Math.max(1, Math.ceil(this.filtered().length / this.pageSize()));
-    if (this.pageIndex() > total) this.pageIndex.set(total);
-  }
-  cancelDrop() {
-    this.showConfirmDrop.set(false);
-    this.classToDrop.set(null);
-  }
-
-  // ------------- schedule helpers -------------
   addSchedule() {
-    const group = this.fb.group({
+    const g = this.fb.group({
       day: this.fb.control<number>(2, { nonNullable: true, validators: [Validators.required] }),
       start: this.fb.control<string>('08:00', {
         nonNullable: true,
@@ -431,10 +556,10 @@ export class ClassManager {
       }),
       room: this.fb.control<string>('P203', {
         nonNullable: true,
-        validators: [Validators.required, Validators.maxLength(40)],
+        validators: [Validators.required, Validators.maxLength(200)],
       }),
     });
-    this.scheduleArray.push(group);
+    this.scheduleArray.push(g);
   }
   removeSchedule(idx: number) {
     if (this.scheduleArray.length <= 1) return;
@@ -459,27 +584,12 @@ export class ClassManager {
           }),
           room: this.fb.control<string>(it.room, {
             nonNullable: true,
-            validators: [Validators.required, Validators.maxLength(40)],
+            validators: [Validators.required, Validators.maxLength(200)],
           }),
         })
       )
     );
     if (this.scheduleArray.length === 0) this.addSchedule();
-  }
-  addStudentFromInput() {
-    const v = (this.form.get('studentsInput')?.value || '').trim();
-    if (!v) return;
-    if (!this.studentsArray.value.includes(v)) {
-      this.studentsArray.push(new FormControl(v, { nonNullable: true }));
-    }
-    this.form.get('studentsInput')?.reset('');
-  }
-  removeStudent(idx: number) {
-    this.studentsArray.removeAt(idx);
-  }
-  setStudents(list: string[]) {
-    this.clearFormArray(this.studentsArray);
-    list.forEach((s) => this.studentsArray.push(new FormControl(s, { nonNullable: true })));
   }
   private clearFormArray(arr: FormArray) {
     while (arr.length) arr.removeAt(0);

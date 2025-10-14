@@ -3,22 +3,20 @@
 <div class="card-soft p-3 mb-3 mt-2">
   <div class="row g-2">
     <div class="col-6 col-md-2">
-      <input class="form-control" placeholder="Tìm MSSV" [(ngModel)]="studentQuery().id" />
+      <input class="form-control" placeholder="Mã SV" [(ngModel)]="studentForm.code" />
     </div>
     <div class="col-6 col-md-3">
-      <input class="form-control" placeholder="Tìm họ và tên" [(ngModel)]="studentQuery().name" />
+      <input class="form-control" placeholder="Họ và tên" [(ngModel)]="studentForm.name" />
     </div>
     <div class="col-6 col-md-2">
-      <input class="form-control" placeholder="Tìm SĐT" [(ngModel)]="studentQuery().phone" />
+      <input class="form-control" placeholder="SĐT" [(ngModel)]="studentForm.phone" />
     </div>
     <div class="col-6 col-md-3">
-      <input class="form-control" placeholder="Tìm Email" [(ngModel)]="studentQuery().email" />
+      <input class="form-control" placeholder="Email" [(ngModel)]="studentForm.email" />
     </div>
     <div class="col-12 col-md-2 d-flex gap-2">
-      <button class="btn btn-primary flex-fill" (click)="applyStudentFilters()">Tìm kiếm</button>
-      <button class="btn btn-outline-secondary flex-fill" (click)="clearStudentFilters()">
-        Xóa lọc
-      </button>
+      <button class="btn btn-primary flex-fill" (click)="searchStudents()">Tìm kiếm</button>
+      <button class="btn btn-outline-secondary flex-fill" (click)="clearStudentFilters()">Xóa lọc</button>
     </div>
   </div>
 </div>
@@ -26,7 +24,7 @@
 <div class="card-soft p-3 mb-4">
   <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
     <div class="section-title mb-0">Sinh viên</div>
-    <div class="text-muted small">Tổng: {{ studentsFiltered().length }}</div>
+    <div class="text-muted small">Tổng: {{ stuTotalElements() }}</div>
   </div>
 
   <div class="table-responsive">
@@ -42,49 +40,40 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let s of studentsPaged(); trackBy: trackStudent">
+        <tr *ngIf="stuLoading()">
+          <td colspan="6" class="text-muted">Đang tải...</td>
+        </tr>
+        <tr *ngIf="!stuLoading() && stuErr()">
+          <td colspan="6" class="text-danger">{{ stuErr() }}</td>
+        </tr>
+        <tr *ngFor="let s of students(); trackBy: trackStudent">
           <td class="fw-600">{{ s.id }}</td>
           <td class="text-start">{{ s.name }}</td>
           <td>{{ s.phone || '—' }}</td>
           <td class="text-start">{{ s.email || '—' }}</td>
           <td class="text-start">{{ s.major || '—' }}</td>
-          <td>{{ s.gender || '—' }}</td>
+          <td>{{ s.gender }}</td>
         </tr>
-        <tr *ngIf="!studentsPaged().length">
-          <td colspan="6" class="text-muted">Không có dữ liệu phù hợp bộ lọc.</td>
+        <tr *ngIf="!stuLoading() && !students().length && !stuErr()">
+          <td colspan="6" class="text-muted">Không có dữ liệu.</td>
         </tr>
       </tbody>
     </table>
   </div>
 
   <div class="d-flex justify-content-between align-items-center mt-2">
-    <div class="text-muted small">Trang {{ studentPageIndex() }} / {{ studentTotalPages() }}</div>
-    <div class="d-flex align-items-center gap-2">
-      <div class="btn-group">
-        <button
-          class="btn btn-outline-secondary btn-sm"
-          (click)="goStudentPage(studentPageIndex() - 1)"
-        >
-          &laquo;
-        </button>
-        <button
-          class="btn btn-sm"
-          *ngFor="let p of studentPageNumbers()"
-          [ngClass]="{
-            'btn-primary': studentPageIndex() === p,
-            'btn-outline-secondary': studentPageIndex() !== p
-          }"
-          (click)="goStudentPage(p)"
-        >
-          {{ p }}
-        </button>
-        <button
-          class="btn btn-outline-secondary btn-sm"
-          (click)="goStudentPage(studentPageIndex() + 1)"
-        >
-          &raquo;
-        </button>
-      </div>
+    <div class="text-muted small">Trang {{ stuPage() }} / {{ stuTotalPages() }}</div>
+    <div class="btn-group">
+      <button class="btn btn-outline-secondary btn-sm" (click)="goStudentPage(stuPage() - 1)">&laquo;</button>
+      <button
+        class="btn btn-sm"
+        *ngFor="let p of stuPageNumbers()"
+        [ngClass]="{ 'btn-primary': stuPage() === p, 'btn-outline-secondary': stuPage() !== p }"
+        (click)="goStudentPage(p)"
+      >
+        {{ p }}
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goStudentPage(stuPage() + 1)">&raquo;</button>
     </div>
   </div>
 </div>
@@ -94,25 +83,21 @@
 <div class="card-soft p-3 mb-3 mt-2">
   <div class="row g-2">
     <div class="col-6 col-md-2">
-      <input class="form-control" placeholder="Mã GV" [(ngModel)]="lecturerQuery().id" />
+      <input class="form-control" placeholder="Mã GV" [(ngModel)]="lecturerForm.code" />
     </div>
     <div class="col-6 col-md-3">
-      <input class="form-control" placeholder="Họ và tên" [(ngModel)]="lecturerQuery().name" />
+      <input class="form-control" placeholder="Họ và tên" [(ngModel)]="lecturerForm.name" />
     </div>
+    <!-- BE không hỗ trợ lọc theo Khoa/Bộ môn, nên bỏ ô tìm này khỏi request -->
     <div class="col-6 col-md-2">
-      <input class="form-control" placeholder="Khoa/Bộ môn" [(ngModel)]="lecturerQuery().dept" />
-    </div>
-    <div class="col-6 col-md-2">
-      <input class="form-control" placeholder="SĐT" [(ngModel)]="lecturerQuery().phone" />
+      <input class="form-control" placeholder="SĐT" [(ngModel)]="lecturerForm.phone" />
     </div>
     <div class="col-6 col-md-3">
-      <input class="form-control" placeholder="Email" [(ngModel)]="lecturerQuery().email" />
+      <input class="form-control" placeholder="Email" [(ngModel)]="lecturerForm.email" />
     </div>
     <div class="col-12 col-md-2 d-flex gap-2">
-      <button class="btn btn-primary flex-fill" (click)="applyLecturerFilters()">Tìm kiếm</button>
-      <button class="btn btn-outline-secondary flex-fill" (click)="clearLecturerFilters()">
-        Xóa lọc
-      </button>
+      <button class="btn btn-primary flex-fill" (click)="searchLecturers()">Tìm kiếm</button>
+      <button class="btn btn-outline-secondary flex-fill" (click)="clearLecturerFilters()">Xóa lọc</button>
     </div>
   </div>
 </div>
@@ -120,7 +105,7 @@
 <div class="card-soft p-3">
   <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
     <div class="section-title mb-0">Giảng viên</div>
-    <div class="text-muted small">Tổng: {{ lecturersFiltered().length }}</div>
+    <div class="text-muted small">Tổng: {{ lecTotalElements() }}</div>
   </div>
 
   <div class="table-responsive">
@@ -136,7 +121,13 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let l of lecturersPaged(); trackBy: trackLecturer">
+        <tr *ngIf="lecLoading()">
+          <td colspan="6" class="text-muted">Đang tải...</td>
+        </tr>
+        <tr *ngIf="!lecLoading() && lecErr()">
+          <td colspan="6" class="text-danger">{{ lecErr() }}</td>
+        </tr>
+        <tr *ngFor="let l of lecturers(); trackBy: trackLecturer">
           <td class="fw-600">{{ l.id }}</td>
           <td class="text-start">{{ l.name }}</td>
           <td class="text-start">{{ l.dept || '—' }}</td>
@@ -144,42 +135,26 @@
           <td>{{ l.phone || '—' }}</td>
           <td class="text-start">{{ l.email || '—' }}</td>
         </tr>
-        <tr *ngIf="!lecturersPaged().length">
-          <td colspan="6" class="text-muted">Không có dữ liệu phù hợp bộ lọc.</td>
+        <tr *ngIf="!lecLoading() && !lecturers().length && !lecErr()">
+          <td colspan="6" class="text-muted">Không có dữ liệu.</td>
         </tr>
       </tbody>
     </table>
   </div>
 
   <div class="d-flex justify-content-between align-items-center mt-2">
-    <div class="text-muted small">Trang {{ lecturerPageIndex() }} / {{ lecturerTotalPages() }}</div>
-    <div class="d-flex align-items-center gap-2">
-
-      <div class="btn-group">
-        <button
-          class="btn btn-outline-secondary btn-sm"
-          (click)="goLecturerPage(lecturerPageIndex() - 1)"
-        >
-          &laquo;
-        </button>
-        <button
-          class="btn btn-sm"
-          *ngFor="let p of lecturerPageNumbers()"
-          [ngClass]="{
-            'btn-primary': lecturerPageIndex() === p,
-            'btn-outline-secondary': lecturerPageIndex() !== p
-          }"
-          (click)="goLecturerPage(p)"
-        >
-          {{ p }}
-        </button>
-        <button
-          class="btn btn-outline-secondary btn-sm"
-          (click)="goLecturerPage(lecturerPageIndex() + 1)"
-        >
-          &raquo;
-        </button>
-      </div>
+    <div class="text-muted small">Trang {{ lecPage() }} / {{ lecTotalPages() }}</div>
+    <div class="btn-group">
+      <button class="btn btn-outline-secondary btn-sm" (click)="goLecturerPage(lecPage() - 1)">&laquo;</button>
+      <button
+        class="btn btn-sm"
+        *ngFor="let p of lecPageNumbers()"
+        [ngClass]="{ 'btn-primary': lecPage() === p, 'btn-outline-secondary': lecPage() !== p }"
+        (click)="goLecturerPage(p)"
+      >
+        {{ p }}
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goLecturerPage(lecPage() + 1)">&raquo;</button>
     </div>
   </div>
 </div>

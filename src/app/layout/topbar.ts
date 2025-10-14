@@ -7,7 +7,7 @@ import { AuthService } from '../core/auth.service';
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, ConfirmDialog, NgIf],
+  imports: [RouterLink, RouterLinkActive, ConfirmDialog],
   templateUrl: './topbar.html',
 })
 export class Topbar {

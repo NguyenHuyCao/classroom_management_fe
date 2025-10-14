@@ -1,11 +1,11 @@
 import { Component, computed, inject } from '@angular/core';
-import { NgClass, NgFor } from '@angular/common';
+import { NgClass, NgFor, CommonModule } from '@angular/common';
 import { ToastService, Toast } from './toast.service';
 
 @Component({
   selector: 'app-toasts',
   standalone: true,
-  imports: [NgFor, NgClass],
+  imports: [NgFor, NgClass, CommonModule],
   template: `
     <div class="cm-toasts" aria-live="polite" aria-atomic="true">
       <div

@@ -171,6 +171,10 @@ export class ClassManager {
       return dt.getFullYear() === y ? null : { yearMismatch: true };
     };
   }
+  private extractPage<T>(res: any): PageResponse<T> {
+    const inner = res?.data ?? res; // hỗ trợ {data:{...}} hoặc {...}
+    return inner?.items ? (inner as PageResponse<T>) : (inner?.page as PageResponse<T>);
+  }
 
   ngOnInit() {
     this.loadMyClasses();
@@ -193,11 +197,22 @@ export class ClassManager {
   }
 
   /** Map row từ API /me */
+  /** Map row từ API /me */
   private mapMyRow(row: any): ClassItem {
-    const semCode = String(row.semesterCode || '').toUpperCase();
-    const sem: Semester = (semCode === 'HKHE' ? 'HK He' : (semCode as Semester)) || 'HK1';
-    const mode = String(row.deliveryMode || '').toUpperCase();
-    const st: Status = mode === 'ONLINE' ? 'Online' : 'Offline';
+    const semCode = String(row.semesterCode || '')
+      .trim()
+      .toUpperCase();
+    const sem: Semester =
+      semCode === 'HK1' || semCode === 'HK2'
+        ? (semCode as Semester)
+        : semCode === 'HKHE'
+        ? 'HK He'
+        : 'HK1'; // fallback
+
+    const mode = String(row.deliveryMode || '')
+      .trim()
+      .toUpperCase();
+    const st: Status = mode === 'ONLINE' ? 'Online' : 'Offline'; // fallback
 
     return {
       id: row.classCode,
@@ -246,13 +261,12 @@ export class ClassManager {
       .set('size', String(this.pageSize()));
     this.http.get<any>(`${this.API}/me`, { params }).subscribe({
       next: (res) => {
-        // hỗ trợ 2 format: {data:{...}} hoặc {...}
-        const page = (res?.data ?? res) as PageResponse<any>;
-        const items = (page.items || []).map((r: any) => this.mapMyRow(r));
+        const page = this.extractPage<any>(res);
+        const items = (page?.items ?? []).map((r: any) => this.mapMyRow(r));
         this.mySnapshot.set({
           items,
-          totalPages: page.totalPages ?? 1,
-          totalElements: page.totalElements ?? items.length,
+          totalPages: page?.totalPages ?? 1,
+          totalElements: page?.totalElements ?? items.length,
         });
       },
       error: (e) => this.myError.set(e?.message || 'Không tải được danh sách lớp của bạn.'),
@@ -260,26 +274,24 @@ export class ClassManager {
     });
   }
 
-  // Catalog (student)
   private loadCatalog() {
     this.catalogLoading.set(true);
     this.catalogError.set(null);
     let params = new HttpParams()
       .set('page', String(this.catPageIndex() - 1))
       .set('size', String(this.catPageSize()));
-    const sem = this.catSemester();
-    if (sem !== 'ALL') params = params.set('semester', sem);
+    if (this.catSemester() !== 'ALL') params = params.set('semester', this.catSemester());
     const subj = this.catSubjectText().trim();
     if (subj) params = params.set('course', subj);
 
     this.http.get<any>(`${this.API}/catalog`, { params }).subscribe({
       next: (res) => {
-        const page = (res?.data ?? res) as PageResponse<any>;
-        const items = (page.items || []).map((r: any) => this.mapCatalogRow(r));
+        const page = this.extractPage<any>(res);
+        const items = (page?.items ?? []).map((r: any) => this.mapCatalogRow(r));
         this.catalogSnapshot.set({
           items,
-          totalPages: page.totalPages ?? 1,
-          totalElements: page.totalElements ?? items.length,
+          totalPages: page?.totalPages ?? 1,
+          totalElements: page?.totalElements ?? items.length,
         });
       },
       error: (e) => this.catalogError.set(e?.message || 'Không tải được catalog.'),

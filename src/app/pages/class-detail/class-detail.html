@@ -21,7 +21,7 @@
 
     <div class="actions mt-3 d-flex flex-wrap gap-2">
       <a class="btn btn-outline-secondary" [routerLink]="['/class-catalog']"><i class="bi bi-arrow-left"></i> Quay lại danh sách</a>
-      <button class="btn btn-outline-secondary" (click)="exportStudentsCSV()"><i class="bi bi-download"></i> Xuất SV (PDF)</button>
+      <button class="btn btn-outline-secondary" (click)="exportStudentsCSV()"><i class="bi bi-download"></i> Xuất SV (CSV)</button>
       <a class="btn btn-primary" [routerLink]="['/class-manager']" [queryParams]="{ edit: d.id }"><i class="bi bi-pencil"></i> Chỉnh sửa lớp</a>
     </div>
   </div>
@@ -78,7 +78,16 @@
         </thead>
         <tbody>
           <tr *ngFor="let s of d.schedule">
-            <td>Thứ {{ s.day }}</td><td>{{ s.start }}</td><td>{{ s.end }}</td><td>{{ s.room }}</td><td>{{ s.link }}</td>
+            <td>{{ weekdayName(s.day) }}</td>
+            <td>{{ s.start }}</td>
+            <td>{{ s.end }}</td>
+            <td>{{ s.room }}</td>
+            <td>
+              <ng-container *ngIf="s.link; else nolink">
+                <a [href]="s.link" target="_blank" rel="noopener">Mở</a>
+              </ng-container>
+              <ng-template #nolink>—</ng-template>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -94,25 +103,28 @@
     <div class="row g-2 mb-2 mt-2 mb-3">
       <div class="col-6 col-md-2">
         <input class="form-control form-control" placeholder="Tìm MSSV"
-              [value]="searchId()" (input)="onSearchId($event)" />
+               [value]="searchId()" (input)="onSearchId($event)" />
       </div>
       <div class="col-6 col-md-3">
         <input class="form-control form-control" placeholder="Tìm họ và tên"
-              [value]="searchName()" (input)="onSearchName($event)" />
+               [value]="searchName()" (input)="onSearchName($event)" />
       </div>
       <div class="col-6 col-md-2">
         <input class="form-control form-control" placeholder="Tìm SĐT"
-              [value]="searchPhone()" (input)="onSearchPhone($event)" />
+               [value]="searchPhone()" (input)="onSearchPhone($event)" />
       </div>
       <div class="col-6 col-md-3">
         <input class="form-control form-control" placeholder="Tìm Email"
-              [value]="searchEmail()" (input)="onSearchEmail($event)" />
+               [value]="searchEmail()" (input)="onSearchEmail($event)" />
       </div>
       <div class="col-6 col-md-auto d-flex gap-2">
-        <button class="btn-primary btn btn " (click)="clearStudentFilters()">Tìm kiếm</button>
+        <button class="btn-primary btn btn" (click)="doSearchStudents()">Tìm kiếm</button>
         <button class="btn-outline-secondary btn btn" (click)="clearStudentFilters()">Xóa lọc</button>
       </div>
     </div>
+
+    <div *ngIf="studentsLoading()" class="text-muted small mb-2">Đang tải danh sách SV...</div>
+    <div *ngIf="studentsError()" class="text-danger small mb-2">{{ studentsError() }}</div>
 
     <div class="table-responsive">
       <table class="table table-bordered align-middle program-table text-center">
@@ -137,7 +149,7 @@
               <button class="btn btn-danger btn" (click)="askDeleteStudent(s)">Xoá</button>
             </td>
           </tr>
-          <tr *ngIf="!studentsPaged().length">
+          <tr *ngIf="!studentsPaged().length && !studentsLoading()">
             <td colspan="6" class="text-muted text-center">Không có dữ liệu phù hợp bộ lọc.</td>
           </tr>
         </tbody>

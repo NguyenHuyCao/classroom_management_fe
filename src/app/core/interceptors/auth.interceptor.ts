@@ -17,9 +17,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authReq).pipe(
     catchError((err) => {
-      // Cần refresh khi 401 hoặc envelope báo UNAUTHORIZED
       const isUnauthorized =
         (err?.status === 401 ||
+          err?.status === 403 ||
           (err instanceof ApiError &&
             (err.code === 'UNAUTHORIZED' || err.code === 'TOKEN_EXPIRED'))) &&
         !req.headers.has('X-Refresh-Attempt');

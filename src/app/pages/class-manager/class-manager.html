@@ -1,6 +1,7 @@
 <app-section-title title="QUẢN LÝ LỚP HỌC"></app-section-title>
 
-<div class="card-soft p-3 mb-4 mt-2">
+<!-- ====== TEACHER: Form tạo/chỉnh sửa lớp ====== -->
+<div class="card-soft p-3 mb-4 mt-2" *ngIf="role() === 'TEACHER'">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h6 class="mb-0">{{ editingId() ? 'Chỉnh sửa lớp' : 'Tạo lớp học mới' }}</h6>
     <span class="text-muted small" *ngIf="editingId()">ID: {{ editingId() }}</span>
@@ -14,11 +15,7 @@
       </div>
       <div class="col-md-5">
         <label class="form-label">Tên lớp</label>
-        <input
-          class="form-control"
-          formControlName="name"
-          placeholder="VD: Nhập môn Khoa học Máy tính - K40A"
-        />
+        <input class="form-control" formControlName="name" placeholder="VD: Nhập môn Khoa học Máy tính - K40A" />
       </div>
       <div class="col-md-2">
         <label class="form-label">Môn học</label>
@@ -54,11 +51,7 @@
             </button>
           </div>
 
-          <div
-            class="row g-2 align-items-end"
-            formArrayName="schedule"
-            *ngFor="let sch of scheduleArray.controls; let i = index"
-          >
+          <div class="row g-2 align-items-end" formArrayName="schedule" *ngFor="let sch of scheduleArray.controls; let i = index">
             <div [formGroupName]="i" class="row g-2 align-items-end">
               <div class="col-md-2">
                 <label class="form-label mb-1">Thứ</label>
@@ -79,12 +72,7 @@
                 <input class="form-control" formControlName="room" placeholder="P203 / Online" />
               </div>
               <div class="col-md-2">
-                <button
-                  type="button"
-                  class="btn btn-outline-danger w-100"
-                  (click)="removeSchedule(i)"
-                  [disabled]="scheduleArray.length <= 1"
-                >
+                <button type="button" class="btn btn-outline-danger w-100" (click)="removeSchedule(i)" [disabled]="scheduleArray.length <= 1">
                   <i class="bi bi-trash"></i> Xóa
                 </button>
               </div>
@@ -94,53 +82,71 @@
         </div>
       </div>
 
-      <div class="col-12">
-        <div class="sub-card p-3">
-          <h6 class="mb-2">Sinh viên</h6>
-          <div class="row g-2 align-items-end">
-            <div class="col-md-6">
-              <label class="form-label mb-1">Thêm nhanh MSSV/Email</label>
-              <div class="input-group">
-                <input
-                  class="form-control"
-                  formControlName="studentsInput"
-                  placeholder="VD: SV0123 hoặc email"
-                />
-                <button
-                  type="button"
-                  class="btn btn-outline-primary"
-                  (click)="addStudentFromInput()"
-                >
-                  Thêm
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="chips mt-2" *ngIf="studentsArray.length">
-            <span class="chip" *ngFor="let s of studentsArray.controls; let i = index">
-              {{ s.value }}
-              <button type="button" class="chip-remove" (click)="removeStudent(i)">&times;</button>
-            </span>
-          </div>
-          <div class="text-muted small" *ngIf="!studentsArray.length">
-            Chưa có sinh viên nào được thêm.
-          </div>
-        </div>
-      </div>
-
       <div class="col-12 text-end">
-        <button type="button" class="btn btn-outline-secondary me-2" (click)="startCreate()">
-          Làm mới
-        </button>
-        <button type="submit" class="btn btn-primary">
-          {{ editingId() ? 'Cập nhật lớp' : 'Tạo lớp' }}
-        </button>
+        <button type="button" class="btn btn-outline-secondary me-2" (click)="startCreate()">Làm mới</button>
+        <button type="submit" class="btn btn-primary">{{ editingId() ? 'Cập nhật lớp' : 'Tạo lớp' }}</button>
       </div>
     </div>
   </form>
 </div>
 
+<!-- ====== STUDENT: Catalog đăng ký lớp ====== -->
+<div class="card-soft p-3 mb-4 mt-2" *ngIf="role() === 'STUDENT'">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0">Đăng ký lớp trong kỳ</h6>
+    <div class="d-flex gap-2 align-items-center">
+      <select class="form-select form-select-sm" style="width:auto" (change)="onSemesterChange($event)">
+        <option value="ALL">Tất cả kỳ</option>
+        <option *ngFor="let s of semesters" [value]="s.value">{{ s.label }}</option>
+      </select>
+      <input class="form-control form-control-sm" style="width:220px" placeholder="Tìm mã/tên/môn..." (input)="onSearchInput($event)" />
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle program-table">
+      <thead>
+        <tr>
+          <th style="width: 120px">Mã lớp</th>
+          <th>Tên lớp</th>
+          <th style="width: 100px">Môn</th>
+          <th style="width: 110px">Học kỳ</th>
+          <th style="width: 110px">Trạng thái</th>
+          <th style="width: 220px">Lịch học</th>
+          <th style="width: 120px">Đăng ký</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of catalog()">
+          <td class="fw-600">{{ c.code }}</td>
+          <td class="text-start">{{ c.name }}</td>
+          <td>{{ c.subject }}</td>
+          <td><span class="badge bg-sem">{{ c.semester }}</span></td>
+          <td>
+            <span class="badge" [ngClass]="{ 'bg-online': c.status === 'Online', 'bg-offline': c.status === 'Offline' }">
+              {{ c.status }}
+            </span>
+          </td>
+          <td class="text-start">
+            <div class="sch" *ngFor="let s of c.schedule">
+              <i class="bi bi-calendar2-week me-1"></i> Thứ {{ s.day }} • {{ s.start }}–{{ s.end }} • {{ s.room }}
+            </div>
+          </td>
+          <td class="text-center">
+            <button class="btn btn-primary btn-sm" [disabled]="isEnrolled(c.id)" (click)="register(c)">
+              {{ isEnrolled(c.id) ? 'Đã đăng ký' : 'Đăng ký' }}
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="!catalog()?.length">
+          <td colspan="7" class="text-center text-muted">Chưa có lớp mở trong kỳ.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ====== BẢNG DƯỚI: "Lớp của tôi" (Teacher: lớp quản lý; Student: lớp đã đăng ký) ====== -->
 <div class="card-soft p-3">
   <div class="table-responsive">
     <table class="table table-bordered align-middle program-table">
@@ -151,9 +157,8 @@
           <th style="width: 100px">Môn</th>
           <th style="width: 110px">Học kỳ</th>
           <th style="width: 110px">Trạng thái</th>
-          <th style="width: 80px">Sĩ số</th>
           <th style="width: 220px">Lịch học</th>
-          <th style="width: 120px">Thao tác</th>
+          <th style="width: 140px">Thao tác</th>
         </tr>
       </thead>
       <tbody>
@@ -168,45 +173,43 @@
           (keydown.space)="goDetail(c.id)"
         >
           <td><span class="fw-600">{{ c.code }}</span></td>
-          <td>{{ c.name }}</td>
+          <td class="text-start">{{ c.name }}</td>
           <td>{{ c.subject }}</td>
           <td><span class="badge bg-sem">{{ c.semester }}</span></td>
           <td>
-            <span
-              class="badge"
-              [ngClass]="{
-                'bg-online': c.status === 'Online',
-                'bg-offline': c.status === 'Offline'
-              }"
-            >
+            <span class="badge" [ngClass]="{ 'bg-online': c.status === 'Online', 'bg-offline': c.status === 'Offline' }">
               {{ c.status }}
             </span>
           </td>
-          <td>{{ c.size }}</td>
-          <td>
+          <td class="text-start">
             <div class="sch" *ngFor="let s of c.schedule">
               <i class="bi bi-calendar2-week me-1"></i>
               Thứ {{ s.day }} • {{ s.start }}–{{ s.end }} • {{ s.room }}
             </div>
           </td>
-          <td class="text-center">
-            <button
-              class="btn btn-light btn-sm me-1"
-              (click)="$event.stopPropagation(); startEdit(c)"
-            >
-              <i class="bi bi-pencil"></i>
-            </button>
-            <button
-              class="btn btn-light btn-sm"
-              (click)="$event.stopPropagation(); askDelete(c)"
-            >
-              <i class="bi bi-trash"></i>
-            </button>
+          <td class="text-center" (click)="$event.stopPropagation()">
+            <!-- TEACHER actions -->
+            <ng-container *ngIf="role() === 'TEACHER'; else studentActions">
+              <button class="btn btn-light btn-sm me-1" (click)="startEdit(c)">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-light btn-sm" (click)="askDelete(c)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </ng-container>
+            <!-- STUDENT actions -->
+            <ng-template #studentActions>
+              <button class="btn btn-outline-danger btn-sm" (click)="askDrop(c)">
+                Hủy ghi danh
+              </button>
+            </ng-template>
           </td>
         </tr>
 
         <tr *ngIf="!paged().length">
-          <td colspan="8" class="text-center text-muted">Không có lớp phù hợp bộ lọc.</td>
+          <td colspan="7" class="text-center text-muted">
+            {{ role() === 'TEACHER' ? 'Chưa có lớp nào bạn quản lý.' : 'Bạn chưa đăng ký lớp nào.' }}
+          </td>
         </tr>
       </tbody>
     </table>
@@ -217,17 +220,14 @@
       Tổng: {{ filtered().length }} lớp • Trang {{ pageIndex() }}/{{ totalPages() }}
     </div>
     <div class="btn-group">
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() - 1)">
-        &laquo;
-      </button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() - 1)">&laquo;</button>
       <button class="btn btn-outline-secondary btn-sm" disabled>{{ pageIndex() }}</button>
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() + 1)">
-        &raquo;
-      </button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() + 1)">&raquo;</button>
     </div>
   </div>
 </div>
 
+<!-- XÁC NHẬN XOÁ (Teacher) -->
 <app-confirm-dialog
   [open]="showConfirmDelete()"
   title="Xoá lớp học"
@@ -238,4 +238,17 @@
   (confirmed)="confirmDelete()"
   (canceled)="cancelDelete()"
   (closed)="cancelDelete()"
+></app-confirm-dialog>
+
+<!-- XÁC NHẬN HỦY GHI DANH (Student) -->
+<app-confirm-dialog
+  [open]="showConfirmDrop()"
+  title="Hủy ghi danh"
+  [message]="'Bạn có chắc muốn hủy lớp ' + (classToDrop()?.name || '') + ' (' + (classToDrop()?.code || '') + ')?'"
+  confirmText="Hủy ghi danh"
+  cancelText="Đóng"
+  tone="danger"
+  (confirmed)="confirmDrop()"
+  (canceled)="cancelDrop()"
+  (closed)="cancelDrop()"
 ></app-confirm-dialog>

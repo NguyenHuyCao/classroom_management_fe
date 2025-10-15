@@ -5,6 +5,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { SectionTitleComponent } from '../../components/title/section-title.component';
 import { environment } from '../../../environments/environment';
+import { NgSelectModule } from '@ng-select/ng-select';
 
 type TrainingItem = {
   courseCode: string;
@@ -20,7 +21,7 @@ type TrainingCategory = { categoryName: string; items: TrainingItem[] };
 @Component({
   selector: 'app-program',
   standalone: true,
-  imports: [CommonModule, FormsModule, SectionTitleComponent],
+  imports: [CommonModule, FormsModule, SectionTitleComponent, NgSelectModule],
   templateUrl: './program.html',
   styleUrl: './program.scss',
 })

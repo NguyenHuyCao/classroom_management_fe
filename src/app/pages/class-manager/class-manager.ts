@@ -1,8 +1,17 @@
 import { Component, computed, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormArray,
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
 import { Router } from '@angular/router';
-import { HttpClient, HttpClientModule, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { SectionTitleComponent } from '../../components/title/section-title.component';
 import { ConfirmDialog } from '../../components/confirm/confirm-dialog';
 import { ToastService } from '../../components/toast/toast.service';
@@ -81,10 +90,20 @@ export class ClassManager {
   // ---------------- State: Catalog (student, server paging) ----------------
   catPageIndex = signal(1);
   catPageSize = signal(8);
-  catSemester = signal<Semester | 'ALL'>('ALL');
-  catSubjectText = signal<string>('');
   catalogLoading = signal(false);
   catalogError = signal<string | null>(null);
+
+  // --- UI filters (Catalog) ---
+  catUiSemester = signal<Semester | 'ALL'>('ALL');
+  catUiSubjectText = signal<string>('');
+
+  // Applied filters (for API)
+  catSemester = signal<Semester | 'ALL'>('ALL');
+  catSubjectText = signal<string>('');
+
+  // Search pressed?
+  catApplied = signal<boolean>(false);
+
   private catalogSnapshot = signal<{
     items: ClassItem[];
     totalPages: number;
@@ -134,20 +153,82 @@ export class ClassManager {
 
     this.form = this.fb.group(
       {
-        code: ['', [Validators.required, Validators.maxLength(30)]],
-        name: ['', [Validators.required, Validators.maxLength(120)]],
-        subject: ['', Validators.required],
-        semester: ['HK1', Validators.required],
-        status: ['Offline', Validators.required],
-        size: [40, [Validators.required, Validators.min(1), Validators.max(500)]],
-        year: [new Date().getFullYear(), [Validators.required, Validators.min(2000)]],
-        startDate: ['', Validators.required], // yyyy-MM-dd
-        locationNote: [''],
-        note: [''],
-        schedule: this.fb.array<FormGroup<any>>([]),
+        // BE: classCode @NotBlank, @Size(max=30)
+        // FE: ràng thêm minLength + pattern uppercase/digits/hyphen (ổn, không trái BE)
+        code: this.fb.control<string>('', {
+          nonNullable: true,
+          validators: [
+            Validators.required,
+            Validators.minLength(3),
+            Validators.maxLength(30),
+            this.patternValidator(/^[A-Z0-9-]+$/),
+          ],
+        }),
+
+        // BE: className @NotBlank, @Size(max=200)
+        name: this.fb.control<string>('', {
+          nonNullable: true,
+          validators: [Validators.required, Validators.minLength(3), Validators.maxLength(200)],
+        }),
+
+        // BE: courseCode @NotBlank, @Size(max=20)
+        subject: this.fb.control<string>('', {
+          nonNullable: true,
+          validators: [
+            Validators.required,
+            Validators.maxLength(20),
+            this.mustInList(() => this.subjectsRef),
+          ],
+        }),
+
+        // BE: semesterCode pattern HK1|HK2|HK He
+        semester: this.fb.control<Semester>('HK1', {
+          nonNullable: true,
+          validators: [Validators.required],
+        }),
+
+        // BE: deliveryMode pattern ONLINE|OFFLINE -> FE chọn Online/Offline
+        status: this.fb.control<Status>('Offline', {
+          nonNullable: true,
+          validators: [Validators.required],
+        }),
+
+        // BE: capacity @NotNull @Min(1) @Max(500)
+        size: this.fb.control<number>(40, {
+          nonNullable: true,
+          validators: [Validators.required, Validators.min(1), Validators.max(500)],
+        }),
+
+        // BE: academicYear @NotNull @Min(2000)
+        year: this.fb.control<number>(new Date().getFullYear(), {
+          nonNullable: true,
+          validators: [Validators.required, Validators.min(2000)],
+        }),
+
+        // BE: startDate @NotBlank (yyyy-MM-dd)
+        startDate: this.fb.control<string>('', {
+          nonNullable: true,
+          validators: [Validators.required, this.dateStringValidator()],
+        }),
+
+        // BE: locationNote @Size(max=255)
+        locationNote: this.fb.control<string>('', {
+          nonNullable: true,
+          validators: [Validators.maxLength(255)],
+        }),
+
+        // BE: note free
+        note: this.fb.control<string>('', { nonNullable: true }),
+
+        // BE: schedules @Size(min=1)
+        //  each: weekdayNo [1..7], start/end NotBlank(HH:mm), roomCode NotBlank <=50
+        schedule: this.fb.array<FormGroup<any>>([], {
+          validators: [this.schedulesNoOverlapValidator()],
+        }),
       },
       { validators: [this.yearMatchesStartDateValidator()] }
     );
+
     if (this.scheduleArray.length === 0) this.addSchedule();
 
     effect(() => {
@@ -156,23 +237,143 @@ export class ClassManager {
       this.loadMyClasses();
     });
     effect(() => {
-      this.catPageIndex();
-      this.catPageSize();
-      if (this.role() === 'STUDENT') this.loadCatalog();
+      const _ = [
+        this.catPageIndex(),
+        this.catPageSize(),
+        this.catSemester(),
+        this.catSubjectText(),
+      ];
+      if (this.role() === 'STUDENT' && this.catApplied()) {
+        this.loadCatalog();
+      }
     });
   }
 
-  private yearMatchesStartDateValidator() {
-    return (group: FormGroup) => {
-      const y = Number(group.get('year')?.value);
-      const sd = String(group.get('startDate')?.value || '');
+  // ------------------------ VALIDATORS ------------------------
+
+  private patternValidator(regex: RegExp): ValidatorFn {
+    return (c: AbstractControl): ValidationErrors | null => {
+      const v = String(c.value || '');
+      return !v ? null : regex.test(v) ? null : { pattern: true };
+    };
+  }
+
+  private mustInList(list: () => string[]): ValidatorFn {
+    return (c: AbstractControl): ValidationErrors | null => {
+      const v = String(c.value || '').trim();
+      if (!v) return null;
+      return list().includes(v) ? null : { notInList: true };
+    };
+  }
+
+  private dateStringValidator(): ValidatorFn {
+    return (c: AbstractControl): ValidationErrors | null => {
+      const v = String(c.value || '').trim();
+      if (!v) return null;
+      const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return { invalidDate: true };
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? { invalidDate: true } : null;
+    };
+  }
+
+  private timeStringValidator(): ValidatorFn {
+    return (c: AbstractControl): ValidationErrors | null => {
+      const v = String(c.value || '').trim();
+      if (!v) return null;
+      return /^\d{2}:\d{2}$/.test(v) ? null : { invalidTime: true };
+    };
+  }
+
+  /** start < end cho từng schedule group */
+  private timeOrderValidator(): ValidatorFn {
+    return (group: AbstractControl): ValidationErrors | null => {
+      const g = group as FormGroup;
+      const s = String(g.get('start')?.value || '');
+      const e = String(g.get('end')?.value || '');
+      if (!s || !e) return null;
+      const toMin = (t: string) => {
+        const [hh, mm] = t.split(':').map((x) => Number(x));
+        return hh * 60 + mm;
+      };
+      return toMin(s) < toMin(e) ? null : { timeOrder: true };
+    };
+  }
+
+  /** Không cho 2 lịch cùng ngày bị trùng/đè nhau */
+  private schedulesNoOverlapValidator(): ValidatorFn {
+    return (arr: AbstractControl): ValidationErrors | null => {
+      const a = (arr as FormArray).controls as FormGroup[];
+      const slots: { day: number; start: number; end: number; idx: number }[] = [];
+      const toMin = (t: string) => {
+        const [hh, mm] = (t || '').split(':');
+        const h = Number(hh);
+        const m = Number(mm);
+        return isFinite(h) && isFinite(m) ? h * 60 + m : NaN;
+      };
+      a.forEach((g, idx) => {
+        const day = Number(g.get('day')?.value);
+        const s = toMin(String(g.get('start')?.value || ''));
+        const e = toMin(String(g.get('end')?.value || ''));
+        if (!isNaN(day) && !isNaN(s) && !isNaN(e)) {
+          slots.push({ day, start: s, end: e, idx });
+        }
+      });
+      const byDay: Record<number, { start: number; end: number; idx: number }[]> = {};
+      for (const it of slots) {
+        byDay[it.day] = byDay[it.day] || [];
+        byDay[it.day].push({ start: it.start, end: it.end, idx: it.idx });
+      }
+      for (const d of Object.keys(byDay)) {
+        const list = byDay[+d].sort((x, y) => x.start - y.start);
+        for (let i = 1; i < list.length; i++) {
+          const prev = list[i - 1];
+          const cur = list[i];
+          if (cur.start < prev.end) {
+            (a[prev.idx] as FormGroup).setErrors({ ...(a[prev.idx].errors || {}), overlap: true });
+            (a[cur.idx] as FormGroup).setErrors({ ...(a[cur.idx].errors || {}), overlap: true });
+            return { schedulesOverlap: true };
+          }
+        }
+      }
+      return null;
+    };
+  }
+
+  private yearMatchesStartDateValidator(): ValidatorFn {
+    return (group: AbstractControl): ValidationErrors | null => {
+      const g = group as FormGroup;
+      const y = Number(g.get('year')?.value);
+      const sd = String(g.get('startDate')?.value || '');
       if (!y || !sd) return null;
       const dt = new Date(sd);
       return dt.getFullYear() === y ? null : { yearMismatch: true };
     };
   }
+
+  // ------------------------ Utils: errors (dành cho HTML nếu cần hiển thị) ------------------------
+  isInvalid(path: string): boolean {
+    const c = this.form.get(path);
+    return !!c && c.touched && c.invalid;
+  }
+  errOf(path: string): ValidationErrors | null {
+    const c = this.form.get(path);
+    return (c && c.touched && c.errors) || null;
+  }
+  schErr(i: number, field?: string): ValidationErrors | null {
+    const g = this.scheduleArray.at(i) as FormGroup;
+    if (!g) return null;
+    if (!field) return (g.touched && g.errors) || null;
+    const c = g.get(field);
+    return (c && c.touched && c.errors) || null;
+  }
+  markAllTouched() {
+    this.form.markAllAsTouched();
+    this.scheduleArray.controls.forEach((g) => g.markAllAsTouched());
+  }
+
   private extractPage<T>(res: any): PageResponse<T> {
-    const inner = res?.data ?? res; // hỗ trợ {data:{...}} hoặc {...}
+    const inner = res?.data ?? res;
     return inner?.items ? (inner as PageResponse<T>) : (inner?.page as PageResponse<T>);
   }
 
@@ -197,22 +398,21 @@ export class ClassManager {
   }
 
   /** Map row từ API /me */
-  /** Map row từ API /me */
   private mapMyRow(row: any): ClassItem {
-    const semCode = String(row.semesterCode || '')
+    const semCodeRaw = String(row.semesterCode || '')
       .trim()
       .toUpperCase();
     const sem: Semester =
-      semCode === 'HK1' || semCode === 'HK2'
-        ? (semCode as Semester)
-        : semCode === 'HKHE'
+      semCodeRaw === 'HK1' || semCodeRaw === 'HK2'
+        ? (semCodeRaw as Semester)
+        : semCodeRaw === 'HKHE' || semCodeRaw === 'HK HE'
         ? 'HK He'
-        : 'HK1'; // fallback
+        : 'HK1';
 
     const mode = String(row.deliveryMode || '')
       .trim()
       .toUpperCase();
-    const st: Status = mode === 'ONLINE' ? 'Online' : 'Offline'; // fallback
+    const st: Status = mode === 'ONLINE' ? 'Online' : 'Offline';
 
     return {
       id: row.classCode,
@@ -252,7 +452,6 @@ export class ClassManager {
 
   // ===================== API calls =====================
 
-  // My classes (teacher/student)
   private loadMyClasses() {
     this.myLoading.set(true);
     this.myError.set(null);
@@ -277,10 +476,14 @@ export class ClassManager {
   private loadCatalog() {
     this.catalogLoading.set(true);
     this.catalogError.set(null);
+
     let params = new HttpParams()
       .set('page', String(this.catPageIndex() - 1))
       .set('size', String(this.catPageSize()));
-    if (this.catSemester() !== 'ALL') params = params.set('semester', this.catSemester());
+
+    const sem = this.catSemester();
+    if (sem !== 'ALL') params = params.set('semester', sem);
+
     const subj = this.catSubjectText().trim();
     if (subj) params = params.set('course', subj);
 
@@ -303,22 +506,28 @@ export class ClassManager {
   private buildPayload() {
     const raw = this.form.getRawValue();
     const isOnline = raw.status === 'Online';
+
+    // Chuẩn hóa gửi đúng theo BE:
+    // - semesterCode: 'HK1' | 'HK2' | 'HK He'
+    // - roomCode: luôn có (BE yêu cầu @NotBlank) -> nếu Online gửi 'Online' làm roomCode, link = room (URL/text)
+    const semesterCode: string = raw.semester === 'HK He' ? 'HK He' : raw.semester; // bỏ 'HKHE'
+
     return {
-      classCode: raw.code,
-      className: raw.name,
-      courseCode: raw.subject,
-      semesterCode: raw.semester === 'HK He' ? 'HKHE' : raw.semester,
+      classCode: String(raw.code || '').trim(),
+      className: String(raw.name || '').trim(),
+      courseCode: String(raw.subject || '').trim(),
+      semesterCode,
       academicYear: Number(raw.year),
       deliveryMode: isOnline ? 'ONLINE' : 'OFFLINE',
       capacity: Number(raw.size),
       startDate: String(raw.startDate),
-      locationNote: raw.locationNote || null,
-      note: raw.note || null,
+      locationNote: raw.locationNote ? String(raw.locationNote).trim() : null,
+      note: raw.note ? String(raw.note).trim() : null,
       schedules: (raw.schedule as ScheduleItem[]).map((s) => ({
-        weekdayNo: s.day,
+        weekdayNo: s.day as any, // server accept Short/Number
         startTime: s.start,
         endTime: s.end,
-        roomCode: isOnline ? 'Online' : s.room,
+        roomCode: isOnline ? 'Online' : (s.room || '').slice(0, 50), // ≤ 50
         link: isOnline ? s.room : '',
       })),
     };
@@ -326,13 +535,19 @@ export class ClassManager {
 
   createClass() {
     if (this.role() !== 'TEACHER') return;
+
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      this.markAllTouched();
       if (this.form.errors?.['yearMismatch']) {
         this.toast.danger('Năm học phải trùng với năm của Ngày bắt đầu');
+      } else if (this.form.errors?.['schedulesOverlap']) {
+        this.toast.danger('Lịch học bị trùng/đè thời gian trong cùng một ngày');
+      } else {
+        this.toast.danger('Vui lòng kiểm tra thông tin chưa hợp lệ');
       }
       return;
     }
+
     const body = this.buildPayload();
     this.submitting.set(true);
     this.http.post(this.API, body).subscribe({
@@ -349,20 +564,26 @@ export class ClassManager {
 
   updateClass() {
     if (this.role() !== 'TEACHER') return;
+
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      this.markAllTouched();
       if (this.form.errors?.['yearMismatch']) {
         this.toast.danger('Năm học phải trùng với năm của Ngày bắt đầu');
+      } else if (this.form.errors?.['schedulesOverlap']) {
+        this.toast.danger('Lịch học bị trùng/đè thời gian trong cùng một ngày');
+      } else {
+        this.toast.danger('Vui lòng kiểm tra thông tin chưa hợp lệ');
       }
       return;
     }
+
     const editingKey = this.editingId();
     if (!editingKey) return;
 
     const body = this.buildPayload();
     const updateBody: any = {
       className: body.className,
-      semesterCode: body.semesterCode,
+      semesterCode: body.semesterCode, // 'HK1' | 'HK2' | 'HK He'
       academicYear: body.academicYear,
       deliveryMode: body.deliveryMode,
       capacity: body.capacity,
@@ -451,13 +672,16 @@ export class ClassManager {
   // ---------- UI handlers ----------
   onCatSemesterChange(e: Event) {
     const v = (e.target as HTMLSelectElement | null)?.value as Semester | 'ALL' | undefined;
-    if (v) this.catSemester.set(v);
+    if (v) this.catUiSemester.set(v);
   }
   onCatSubjectInput(e: Event) {
-    this.catSubjectText.set(((e.target as HTMLInputElement)?.value || '').trim());
+    this.catUiSubjectText.set(((e.target as HTMLInputElement)?.value || '').trim());
   }
   applyCatalogFilters() {
+    this.catSemester.set(this.catUiSemester());
+    this.catSubjectText.set(this.catUiSubjectText().trim());
     this.catPageIndex.set(1);
+    this.catApplied.set(true);
     this.loadCatalog();
   }
 
@@ -512,11 +736,22 @@ export class ClassManager {
         this.detailEnrolled.set(Number(d.enrolled ?? 0));
         this.canChangeCourse.set((this.detailEnrolled() ?? 0) === 0);
 
+        // chấp nhận HKHE/HK He từ server; FE set 'HK He' cho case hè
+        const semCodeRaw = String(d.semesterCode || '')
+          .trim()
+          .toUpperCase();
+        const sem: Semester =
+          semCodeRaw === 'HK1' || semCodeRaw === 'HK2'
+            ? (semCodeRaw as Semester)
+            : semCodeRaw === 'HKHE' || semCodeRaw === 'HK HE'
+            ? 'HK He'
+            : 'HK1';
+
         this.form.patchValue({
           code: d.classCode,
           name: d.className,
           subject: d.courseCode,
-          semester: d.semesterCode === 'HKHE' ? 'HK He' : d.semesterCode,
+          semester: sem,
           status: (String(d.deliveryMode || '').toUpperCase() === 'ONLINE'
             ? 'Online'
             : 'Offline') as Status,
@@ -556,53 +791,70 @@ export class ClassManager {
   }
 
   addSchedule() {
-    const g = this.fb.group({
-      day: this.fb.control<number>(2, { nonNullable: true, validators: [Validators.required] }),
-      start: this.fb.control<string>('08:00', {
-        nonNullable: true,
-        validators: [Validators.required],
-      }),
-      end: this.fb.control<string>('10:00', {
-        nonNullable: true,
-        validators: [Validators.required],
-      }),
-      room: this.fb.control<string>('P203', {
-        nonNullable: true,
-        validators: [Validators.required, Validators.maxLength(200)],
-      }),
-    });
+    const g = this.fb.group(
+      {
+        // FE đang support Thứ 2..7 -> min 2 max 7 (BE cho 1..7 vẫn ok vì FE không gửi 1)
+        day: this.fb.control<number>(2, {
+          nonNullable: true,
+          validators: [Validators.required, Validators.min(2), Validators.max(7)],
+        }),
+        start: this.fb.control<string>('08:00', {
+          nonNullable: true,
+          validators: [Validators.required, this.timeStringValidator()],
+        }),
+        end: this.fb.control<string>('10:00', {
+          nonNullable: true,
+          validators: [Validators.required, this.timeStringValidator()],
+        }),
+        // BE: roomCode ≤ 50
+        room: this.fb.control<string>('P203', {
+          nonNullable: true,
+          validators: [Validators.required, Validators.maxLength(50)],
+        }),
+      },
+      { validators: [this.timeOrderValidator()] }
+    );
     this.scheduleArray.push(g);
   }
+
   removeSchedule(idx: number) {
     if (this.scheduleArray.length <= 1) return;
     this.scheduleArray.removeAt(idx);
+    this.scheduleArray.updateValueAndValidity({ onlySelf: false, emitEvent: true });
   }
+
   setSchedules(items: ScheduleItem[]) {
     this.clearFormArray(this.scheduleArray);
     items.forEach((it) =>
       this.scheduleArray.push(
-        this.fb.group({
-          day: this.fb.control<number>(it.day, {
-            nonNullable: true,
-            validators: [Validators.required],
-          }),
-          start: this.fb.control<string>(it.start, {
-            nonNullable: true,
-            validators: [Validators.required],
-          }),
-          end: this.fb.control<string>(it.end, {
-            nonNullable: true,
-            validators: [Validators.required],
-          }),
-          room: this.fb.control<string>(it.room, {
-            nonNullable: true,
-            validators: [Validators.required, Validators.maxLength(200)],
-          }),
-        })
+        this.fb.group(
+          {
+            day: this.fb.control<number>(it.day, {
+              nonNullable: true,
+              validators: [Validators.required, Validators.min(2), Validators.max(7)],
+            }),
+            start: this.fb.control<string>(it.start, {
+              nonNullable: true,
+              validators: [Validators.required, this.timeStringValidator()],
+            }),
+            end: this.fb.control<string>(it.end, {
+              nonNullable: true,
+              validators: [Validators.required, this.timeStringValidator()],
+            }),
+            // BE: roomCode ≤ 50
+            room: this.fb.control<string>(it.room, {
+              nonNullable: true,
+              validators: [Validators.required, Validators.maxLength(50)],
+            }),
+          },
+          { validators: [this.timeOrderValidator()] }
+        )
       )
     );
     if (this.scheduleArray.length === 0) this.addSchedule();
+    this.scheduleArray.updateValueAndValidity({ onlySelf: false, emitEvent: true });
   }
+
   private clearFormArray(arr: FormArray) {
     while (arr.length) arr.removeAt(0);
   }

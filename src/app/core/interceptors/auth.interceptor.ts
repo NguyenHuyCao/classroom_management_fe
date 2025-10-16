@@ -39,7 +39,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           // Refresh thất bại -> đăng xuất + về login
           catchError((refreshErr) => {
             auth.logout();
-            // báo cho người dùng
             try {
               toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
             } catch {}

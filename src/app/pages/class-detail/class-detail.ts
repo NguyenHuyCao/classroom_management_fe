@@ -11,19 +11,19 @@ type Status = 'Online' | 'Offline';
 type Semester = 'HK1' | 'HK2' | 'HK He';
 
 interface ScheduleItemVM {
-  day: number; // 1..7
-  start: string; // "08:00"
-  end: string; // "10:00"
-  room: string; // "P203" | "Online"
+  day: number;
+  start: string;
+  end: string;
+  room: string;
   link?: string;
 }
 
 interface IClassDetail {
-  id: string; // classCode
+  id: string;
   year: number;
   code: string;
   name: string;
-  subject: string; // courseCode
+  subject: string;
   lecturer: { name: string; email?: string; phone?: string; dept?: string };
   semester: Semester;
   status: Status;
@@ -81,22 +81,18 @@ export class ClassDetail {
     return Math.min(100, Math.round((this.enrolledCount() / cap) * 100));
   });
 
-  // ----- STUDENTS (server-side paging/filter) -----
   studentsLoading = signal<boolean>(false);
   studentsError = signal<string | null>(null);
 
-  // filters
-  searchId = signal<string>(''); // MSSV
-  searchName = signal<string>(''); // Họ tên
-  searchPhone = signal<string>(''); // SĐT
-  searchEmail = signal<string>(''); // Email
-  searchMajor = signal<string>(''); // giữ cho tương thích UI
+  searchId = signal<string>('');
+  searchName = signal<string>('');
+  searchPhone = signal<string>('');
+  searchEmail = signal<string>('');
+  searchMajor = signal<string>('');
 
-  // paging
   pageSize = signal<number>(5);
-  pageIndex = signal<number>(1); // 1-based UI
+  pageIndex = signal<number>(1);
 
-  // snapshot
   private studentsPageSnapshot = signal<{
     items: StudentRowVM[];
     totalPages: number;
@@ -106,14 +102,10 @@ export class ClassDetail {
   studentsTotal = computed(() => this.studentsPageSnapshot().totalElements);
   studentsTotalPages = computed(() => Math.max(1, this.studentsPageSnapshot().totalPages));
   studentsPaged = computed(() => this.studentsPageSnapshot().items);
-  // studentsPageNumbers = computed(() =>
-  //   Array.from({ length: this.studentsTotalPages() }, (_, i) => i + 1)
-  // );
 
-  // ----- DELETE STATE (theo studentCode) -----
   showConfirmDeleteStudent = signal<boolean>(false);
-  studentToDelete = signal<{ id: string; name: string } | null>(null); // id = studentCode
-  deletingId = signal<string | null>(null); // đang xoá MSSV nào
+  studentToDelete = signal<{ id: string; name: string } | null>(null);
+  deletingId = signal<string | null>(null);
 
   constructor() {
     effect(() => {
@@ -130,20 +122,18 @@ export class ClassDetail {
 
     const url = `${this.REPORTS_BASE}/classes/${encodeURIComponent(code)}/students.pdf`;
 
-    // Luôn gọi bằng HttpClient để kèm Authorization
     this.http
       .get(url, {
         observe: 'response',
         responseType: 'blob' as const,
+        withCredentials: true,
       })
       .subscribe({
         next: (res) => {
-          // Lấy filename nếu BE có set
           const dispo = res.headers.get('Content-Disposition') || '';
           const m = /filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i.exec(dispo);
           const filename = m ? decodeURIComponent(m[1]) : `${code}_students.pdf`;
 
-          // Mở inline; nếu bị chặn thì tải xuống
           const blob = new Blob([res.body!], { type: 'application/pdf' });
           const previewUrl = URL.createObjectURL(blob);
           const win = window.open(previewUrl, '_blank');
@@ -156,7 +146,6 @@ export class ClassDetail {
           setTimeout(() => URL.revokeObjectURL(previewUrl), 30000);
         },
         error: (err) => {
-          // Nếu BE trả JSON lỗi, hiển thị message dễ hiểu
           const body = err?.error;
           if (body && body.type === 'application/json') {
             try {
@@ -181,7 +170,6 @@ export class ClassDetail {
       });
   }
 
-  // lifecycle
   ngOnInit() {
     const code = this.route.snapshot.paramMap.get('id') ?? 'unknown-code';
     this.classCode.set(code);
@@ -189,7 +177,6 @@ export class ClassDetail {
     this.reloadStudents();
   }
 
-  // ----- API calls -----
   private loadDetail(code: string) {
     this.loading.set(true);
     this.error.set(null);
@@ -240,7 +227,7 @@ export class ClassDetail {
     this.studentsError.set(null);
 
     let params = new HttpParams()
-      .set('page', String(this.pageIndex() - 1)) // UI 1-based -> API 0-based
+      .set('page', String(this.pageIndex() - 1))
       .set('size', String(this.pageSize()));
 
     const codeFilter = this.searchId().trim();
@@ -268,13 +255,11 @@ export class ClassDetail {
           const calcTotalPages = Math.max(1, Math.ceil(beTotalElements / Math.max(1, beSize)));
           const desiredUiPage = bePage0 + 1;
 
-          // Nếu trang yêu cầu lớn hơn tổng trang thực -> lùi về trang cuối rồi stop để lần gọi sau lấy dữ liệu đúng
           if (desiredUiPage > calcTotalPages) {
             this.pageIndex.set(calcTotalPages);
             return;
           }
 
-          // Đồng bộ lại pageIndex/pageSize theo BE (giống các trang khác)
           if (this.pageIndex() !== desiredUiPage) this.pageIndex.set(desiredUiPage);
           if (this.pageSize() !== beSize) this.pageSize.set(beSize);
 
@@ -283,7 +268,7 @@ export class ClassDetail {
             name: s.fullName,
             phone: s.phone,
             email: s.email,
-            maiger: s.majorName, // (giữ key như hiện tại)
+            maiger: s.majorName,
           }));
 
           this.studentsPageSnapshot.set({
@@ -297,7 +282,6 @@ export class ClassDetail {
       });
   }
 
-  // ----- filters & paging handlers -----
   onSearchId(e: Event) {
     this.searchId.set(((e.target as HTMLInputElement | null)?.value ?? '').trim());
   }
@@ -330,14 +314,13 @@ export class ClassDetail {
     this.reloadStudents();
   }
   goStudentPage(i: number | '…') {
-    if (i === '…') return; // bỏ qua nút dấu ba chấm
+    if (i === '…') return;
     const total = this.studentsTotalPages();
-    if (i < 1 || i > total || i === this.pageIndex()) return; // không vượt biên / không set trùng
+    if (i < 1 || i > total || i === this.pageIndex()) return;
     this.pageIndex.set(i);
     this.reloadStudents();
   }
 
-  // ----- helpers -----
   weekdayName(n: number): string {
     switch (n) {
       case 1:
@@ -368,7 +351,6 @@ export class ClassDetail {
     window.print();
   }
 
-  // ====== DELETE FLOW (theo studentCode/MSSV) ======
   askDeleteStudent(s: { id: string; name: string }) {
     if (!s.id) {
       this.toast.warning('Không tìm thấy MSSV — không thể xoá.');
@@ -386,26 +368,21 @@ export class ClassDetail {
     this.deletingId.set(target.id);
     this.showConfirmDeleteStudent.set(false);
 
-    // DELETE /api/v1/classes/{classCode}/students/{studentCode}
     this.http
       .delete<ApiResponse<null>>(
         `${this.API_BASE}/${encodeURIComponent(code)}/students/${encodeURIComponent(target.id)}`
       )
       .subscribe({
         next: (res) => {
-          // 2xx nhưng success=false
           if (res && res.success === false) {
             this.toast.danger(res.message || 'Xoá sinh viên thất bại.');
             return;
           }
-          // Thành công
           this.removeStudentLocallyById(target.id);
           this.toast.success(`Đã xoá ${target.name} (MSSV ${target.id}) khỏi lớp.`);
         },
         error: (err) => {
-          // Non-2xx
           const body = err?.error as Partial<ApiResponse<null>> | string | undefined;
-          // Ưu tiên message từ API chuẩn
           if (body && typeof body === 'object' && 'message' in body && body.message) {
             this.toast.danger(String((body as any).message));
           } else if (typeof body === 'string' && body.trim()) {
@@ -425,11 +402,9 @@ export class ClassDetail {
     const next = current.filter((x) => x.id !== studentCode);
     const snap = this.studentsPageSnapshot();
 
-    // Giảm enrolled trong detail
     const d = this.detail();
     if (d) this.detail.set({ ...d, enrolled: Math.max(0, (d.enrolled ?? 0) - 1) });
 
-    // Tính lại tổng & trang
     const newTotal = Math.max(0, (snap.totalElements ?? 0) - 1);
     const pageSize = this.pageSize();
     const totalPagesAfter = Math.max(1, Math.ceil(newTotal / pageSize));

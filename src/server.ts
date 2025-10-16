@@ -13,7 +13,6 @@ const browserDistFolder = join(import.meta.dirname, '../browser');
 const app = express();
 const angularApp = new AngularNodeAppEngine();
 
-// proxy /api sang BE (dùng biến môi trường BE_URL khi deploy)
 const be = process.env['BE_URL'] ?? 'http://localhost:8080';
 app.use('/api', createProxyMiddleware({ target: be, changeOrigin: true }));
 

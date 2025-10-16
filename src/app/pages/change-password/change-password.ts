@@ -63,7 +63,6 @@ export class ChangePassword {
       this.toast.success('Đổi mật khẩu thành công');
       this.showConfirmPostChange.set(true);
 
-      // Xoá ô nhập để tránh lộ mật khẩu nếu người dùng ở lại
       this.form.reset();
     } catch (e: any) {
       const msg =

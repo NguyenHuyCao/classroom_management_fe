@@ -20,7 +20,6 @@
 
     <div class="col-md-4 d-flex justify-content-md-around gap-2">
       <button class="btn btn-primary" (click)="search()"><i class="bi bi-search"></i> Tìm kiếm</button>
-      <!-- <button class="btn btn-outline-secondary" (click)="clearFilters()">Đặt lại</button> -->
     </div>
   </div>
 
@@ -47,13 +46,11 @@
         </tr>
       </thead>
       <tbody>
-        <!-- mỗi nhóm -->
         <ng-container *ngFor="let cat of categories()">
           <tr>
             <td colspan="7" class="group-title">{{ cat.categoryName }}</td>
           </tr>
 
-          <!-- các môn trong nhóm -->
           <tr *ngFor="let it of cat.items; let i = index">
             <td>{{ i + 1 }}</td>
             <td class="fw-semibold">{{ it.courseCode }}</td>

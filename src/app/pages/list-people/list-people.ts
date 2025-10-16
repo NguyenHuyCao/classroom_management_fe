@@ -7,14 +7,13 @@ import { SectionTitleComponent } from '../../components/title/section-title.comp
 import { environment } from '../../../environments/environment';
 
 type PageResp<T> = {
-  page: number; // 1-based (BE)
+  page: number;
   size: number;
   totalPages: number;
   totalElements: number;
   items: T[];
 };
 
-// --- API rows ---
 type StudentApiRow = {
   studentCode: string;
   fullName: string;
@@ -32,7 +31,6 @@ type LecturerApiRow = {
   email?: string | null;
 };
 
-// --- View rows ---
 type Gender = 'Nam' | 'Nữ' | '—';
 type StudentRow = {
   id: string;
@@ -43,7 +41,7 @@ type StudentRow = {
   gender: Gender;
 };
 type LecturerRow = {
-  id: string; // mã GV
+  id: string;
   name: string;
   dept?: string;
   title?: string;
@@ -62,33 +60,30 @@ export class ListPeople {
   private http = inject(HttpClient);
   private base = environment.apiBaseUrl;
 
-  // ========= Students =========
-  studentForm = { code: '', name: '', phone: '', email: '' }; // input model
+  studentForm = { code: '', name: '', phone: '', email: '' };
   students = signal<StudentRow[]>([]);
   stuLoading = signal(false);
   stuErr = signal<string | null>(null);
 
-  stuPage = signal(1); // 1-based (khớp BE)
+  stuPage = signal(1);
   stuSize = signal(10);
   stuTotalPages = signal(1);
   stuTotalElements = signal(0);
 
   stuPageNumbers = computed(() => Array.from({ length: this.stuTotalPages() }, (_, i) => i + 1));
 
-  // ========= Lecturers =========
-  lecturerForm = { code: '', name: '', phone: '', email: '' }; // BE không hỗ trợ lọc theo dept
+  lecturerForm = { code: '', name: '', phone: '', email: '' };
   lecturers = signal<LecturerRow[]>([]);
   lecLoading = signal(false);
   lecErr = signal<string | null>(null);
 
-  lecPage = signal(1); // 1-based
+  lecPage = signal(1);
   lecSize = signal(10);
   lecTotalPages = signal(1);
   lecTotalElements = signal(0);
 
   lecPageNumbers = computed(() => Array.from({ length: this.lecTotalPages() }, (_, i) => i + 1));
 
-  // ===== Helpers =====
   private toGender(g?: string | null): Gender {
     if (g === 'MALE') return 'Nam';
     if (g === 'FEMALE') return 'Nữ';
@@ -115,7 +110,6 @@ export class ListPeople {
     };
   }
 
-  // ===== API calls =====
   async loadStudents() {
     this.stuLoading.set(true);
     this.stuErr.set(null);
@@ -160,7 +154,6 @@ export class ListPeople {
       if (f.name.trim()) params = params.set('name', f.name.trim());
       if (f.phone.trim()) params = params.set('phone', f.phone.trim());
       if (f.email.trim()) params = params.set('email', f.email.trim());
-      // Lưu ý: BE không có tham số dept -> không gửi
 
       const data = await firstValueFrom(
         this.http.get<PageResp<LecturerApiRow>>(`${this.base}/users/lecturers`, { params })
@@ -181,7 +174,6 @@ export class ListPeople {
     }
   }
 
-  // ===== Actions (Students) =====
   searchStudents() {
     this.stuPage.set(1);
     this.loadStudents();
@@ -198,7 +190,6 @@ export class ListPeople {
     this.loadStudents();
   }
 
-  // ===== Actions (Lecturers) =====
   searchLecturers() {
     this.lecPage.set(1);
     this.loadLecturers();
@@ -215,14 +206,11 @@ export class ListPeople {
     this.loadLecturers();
   }
 
-  // ===== Init =====
   constructor() {
-    // tải mặc định cả 2 bảng
     this.loadStudents();
     this.loadLecturers();
   }
 
-  // trackBy
   trackStudent = (_: number, s: StudentRow) => s.id;
   trackLecturer = (_: number, l: LecturerRow) => l.id;
 }

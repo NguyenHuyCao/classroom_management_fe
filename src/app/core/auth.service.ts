@@ -88,11 +88,11 @@ export class AuthService {
     )
       .then((res) => {
         const nextTokens: Tokens = { accessToken: res.accessToken, refreshToken: res.refreshToken };
-        this.setSession(nextTokens, this._user()!, true); // giữ trạng thái "remember"
+        this.setSession(nextTokens, this._user()!, true);
         return nextTokens.accessToken;
       })
       .catch((e) => {
-        this.logout(); // quan trọng: dọn session nếu refresh fail
+        this.logout();
         throw e;
       })
       .finally(() => (this.refreshing = undefined));
@@ -135,7 +135,6 @@ export class AuthService {
     }
   }
 
-  // ---------- helpers: auto refresh trước khi hết hạn ----------
   private parseJwtExp(at: string | null): number | null {
     if (!at) return null;
     try {
@@ -156,18 +155,14 @@ export class AuthService {
 
     const exp = this.parseJwtExp(accessToken ?? this._tokens()?.accessToken ?? null);
     if (!exp) return;
-    // refresh trước khi hết hạn 60s
     const ms = exp * 1000 - Date.now() - 60_000;
     if (ms <= 0) return;
 
     this.refreshTimer = setTimeout(() => {
-      this.refresh().catch(() => {
-        /* đã xử lý ở interceptor */
-      });
+      this.refresh().catch(() => {});
     }, ms);
   }
 
-  // -------------------- REGISTER APIs (giữ nguyên) --------------------
   registerStudent(p: {
     email: string;
     password: string;
@@ -194,8 +189,6 @@ export class AuthService {
   }
 
   changePassword(p: { currentPassword: string; newPassword: string }) {
-    // Có authInterceptor => tự gắn Bearer token
-    // envelopeInterceptor sẽ unwrap -> nhận null nếu success
     return firstValueFrom(this.http.post<null>(`${this.base}/auth/change-password`, p));
   }
 }

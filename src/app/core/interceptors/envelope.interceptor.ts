@@ -12,7 +12,6 @@ export const envelopeInterceptor: HttpInterceptorFn = (req, next) =>
     map((event) => {
       if (event instanceof HttpResponse) {
         const body = event.body;
-        // BE trả envelope
         if (body && typeof body === 'object' && 'success' in body) {
           const env = body as {
             success: boolean;
@@ -23,7 +22,6 @@ export const envelopeInterceptor: HttpInterceptorFn = (req, next) =>
           if (!env.success) {
             throw new ApiError(env.code ?? null, env.message ?? 'Request failed', event.status);
           }
-          // Unwrap -> body = data
           return event.clone({ body: env.data });
         }
       }

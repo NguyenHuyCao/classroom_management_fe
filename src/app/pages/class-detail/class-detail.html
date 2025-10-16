@@ -227,7 +227,7 @@
             'btn-primary': p !== '…' && pageIndex() === p,
             'btn-outline-secondary': p === '…' || pageIndex() !== p
           }"
-         (click)="goStudentPage(p)"
+          (click)="goStudentPage(p)"
         >
           {{ p }}
         </button>
@@ -248,7 +248,6 @@
   </div>
 </div>
 
-<!-- Confirm dialog -->
 <app-confirm-dialog
   [open]="showConfirmDeleteStudent()"
   title="Xoá sinh viên"

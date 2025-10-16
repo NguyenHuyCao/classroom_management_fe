@@ -1,6 +1,5 @@
 <app-section-title title="QUẢN LÝ LỚP HỌC"></app-section-title>
 
-<!-- ====== TEACHER: Form tạo/chỉnh sửa lớp ====== -->
 <div class="card-soft p-3 mb-4 mt-2" *ngIf="role() === 'TEACHER'">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h6 class="mb-0">{{ editingId() ? 'Chỉnh sửa lớp' : 'Tạo lớp học mới' }}</h6>
@@ -133,7 +132,6 @@
         ></textarea>
       </div>
 
-      <!-- LỊCH HỌC -->
       <div class="col-12">
         <div class="sub-card p-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
@@ -197,7 +195,6 @@
                 </div>
               </div>
 
-              <!-- PHÒNG -->
               <div class="col-md-2">
                 <label class="form-label mb-1">Phòng</label>
                 <input
@@ -216,7 +213,6 @@
                 </div>
               </div>
 
-              <!-- LINK -->
               <div class="col-md-2">
                 <label class="form-label mb-1">Link (chỉ khi Online)</label>
                 <input
@@ -259,7 +255,6 @@
         </div>
       </div>
 
-      <!-- ACTIONS -->
       <div class="col-12 text-end">
         <button type="button" class="btn btn-outline-secondary me-2" (click)="startCreate()">
           Làm mới
@@ -287,7 +282,6 @@
   </form>
 </div>
 
-<!-- ====== STUDENT: Catalog đăng ký lớp ====== -->
 <div class="card-soft p-3 mb-4 mt-2" *ngIf="role() === 'STUDENT'">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h6 class="mb-0">Đăng ký lớp trong kỳ</h6>
@@ -406,7 +400,6 @@
   </div>
 </div>
 
-<!-- ====== BẢNG DƯỚI: Lớp của tôi ====== -->
 <div class="card-soft p-3">
   <div class="table-responsive">
     <table class="table table-bordered align-middle program-table">
@@ -525,7 +518,6 @@
   </div>
 </div>
 
-<!-- XÁC NHẬN XOÁ -->
 <app-confirm-dialog
   [open]="showConfirmDelete()"
   title="Xoá lớp học"
@@ -544,7 +536,6 @@
   (closed)="cancelDelete()"
 ></app-confirm-dialog>
 
-<!-- XÁC NHẬN HỦY GHI DANH -->
 <app-confirm-dialog
   [open]="showConfirmDrop()"
   title="Hủy ghi danh"

@@ -48,7 +48,7 @@ export class Login {
           ? e.message || 'Đăng nhập thất bại.'
           : e?.message || 'Đăng nhập thất bại.';
       this.err.set(msg);
-      this.toast.danger(msg); // <<< toast lỗi
+      this.toast.danger(msg);
     } finally {
       this.loading.set(false);
     }

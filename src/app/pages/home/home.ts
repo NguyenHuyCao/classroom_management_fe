@@ -61,13 +61,10 @@ export class Home {
     try {
       const me = await firstValueFrom(this.api.get<StudentMe | TeacherMe>('/users/me'));
 
-      // Phân biệt theo key từ BE
       if ((me as any)?.studentCode) {
         this.student.set(me as StudentMe);
-        // Cập nhật mã vào AuthService (nếu chưa có)
         const u = this.auth.user();
         if (u && !u.code) {
-          // chỉ cập nhật trong bộ nhớ để Sidenav/Topbar hiển thị
           (u as any).code = (me as StudentMe).studentCode;
         }
       } else {
@@ -78,7 +75,6 @@ export class Home {
         }
       }
     } catch (e: any) {
-      // envelope + errorInterceptor đã định dạng, ưu tiên message
       this.err.set(e?.message || 'Không thể tải thông tin người dùng.');
       this.toast.danger(this.err()!);
     } finally {

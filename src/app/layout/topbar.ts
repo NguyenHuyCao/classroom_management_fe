@@ -1,6 +1,5 @@
 import { Component, Renderer2, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { NgIf } from '@angular/common';
 import { ConfirmDialog } from '../components/confirm/confirm-dialog';
 import { AuthService } from '../core/auth.service';
 
@@ -30,8 +29,8 @@ export class Topbar {
 
   confirmLogout() {
     this.showConfirmLogout = false;
-    this.auth.logout(); // XÓA token + user ở memory & storage
-    this.router.navigate(['/login']); // về trang login
+    this.auth.logout();
+    this.router.navigate(['/login']);
   }
 
   cancelLogout() {

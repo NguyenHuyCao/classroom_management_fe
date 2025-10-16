@@ -1,4 +1,3 @@
-// src/app/pages/register/register.ts
 import { Component, inject } from '@angular/core';
 import { CommonModule, NgFor, NgIf } from '@angular/common';
 import {
@@ -49,7 +48,6 @@ export class Register {
     { value: 'lecturer', label: 'Giảng viên' },
   ];
 
-  // Hiển thị cho người dùng (VI)
   majors = [
     'Khoa học máy tính',
     'Công nghệ thông tin',
@@ -60,7 +58,6 @@ export class Register {
   faculties = ['Khoa CNTT', 'Khoa Toán', 'Khoa Kinh tế', 'Khoa Ngôn ngữ'];
   academicRanks = ['ThS.', 'TS.', 'PGS.TS.', 'GS.TS.'];
 
-  // Map sang BE
   private majorMap: Record<string, string> = {
     'Khoa học máy tính': 'Khoa học máy tính',
     'Công nghệ thông tin': 'Information Technology',
@@ -90,7 +87,7 @@ export class Register {
     student: this.fb.nonNullable.group({
       studentId: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9]+$/)]],
       classCode: ['', [Validators.required]],
-      course: ['', [Validators.required]], // ví dụ: "K40"
+      course: ['', [Validators.required]],
       faculty: ['Khoa CNTT'],
       major: ['Khoa học máy tính', [Validators.required]],
       gender: <'MALE' | 'FEMALE'>'MALE',
@@ -99,7 +96,7 @@ export class Register {
     lecturer: this.fb.nonNullable.group({
       lecturerId: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9\-]+$/)]],
       dept: ['Khoa CNTT', [Validators.required]],
-      title: ['TS.'], // sẽ map -> DR
+      title: ['TS.'],
       officePhone: ['', [Validators.pattern(/^[0-9]{9,11}$/)]],
       workEmail: ['', [Validators.email]],
       officeRoom: [''],
@@ -136,7 +133,6 @@ export class Register {
     }
   }
 
-  /** Tạo payload đúng theo API BE */
   private buildStudentPayload() {
     const v = this.form.getRawValue();
     return {
@@ -145,10 +141,10 @@ export class Register {
       fullName: v.account.fullName,
       phone: v.account.phone,
       studentCode: v.student.studentId,
-      cohort: v.student.course, // vd: "K40"
-      major: this.majorMap[v.student.major] ?? v.student.major, // map VI -> EN nếu có
+      cohort: v.student.course,
+      major: this.majorMap[v.student.major] ?? v.student.major,
       specializedClass: v.student.classCode,
-      gender: v.student.gender, // 'MALE' | 'FEMALE'
+      gender: v.student.gender,
     };
   }
 
@@ -161,7 +157,7 @@ export class Register {
       phone: v.account.phone,
       lecturerCode: v.lecturer.lecturerId,
       department: v.lecturer.dept,
-      academicRank: this.rankMap[v.lecturer.title] ?? v.lecturer.title, // map VI -> code
+      academicRank: this.rankMap[v.lecturer.title] ?? v.lecturer.title,
     };
   }
 

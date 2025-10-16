@@ -37,7 +37,7 @@ type SortKey =
   | 'size';
 
 type ApiItem = {
-  createdAt: string; // "dd/MM/yyyy HH:mm"
+  createdAt: string;
   classCode: string;
   className: string;
   courseCode: string;
@@ -45,7 +45,7 @@ type ApiItem = {
   semesterCode: 'HK1' | 'HK2' | 'HK He';
   deliveryMode: 'ONLINE' | 'OFFLINE';
   capacity: number;
-  scheduleText: string | null; // lines: "Thứ 2 • 08:00–10:00 • P203\n..."
+  scheduleText: string | null;
 };
 type ApiPayload = {
   page: { page: number; size: number; totalPages: number; totalElements: number; items: ApiItem[] };
@@ -64,31 +64,26 @@ export class ClassCatalog {
     this.load();
   }
 
-  // ----- UI inputs -----
   uiCourse = signal<string>('');
   uiYear = signal<number | 'ALL'>('ALL');
   uiSemester = signal<Semester | 'ALL'>('ALL');
   uiStatus = signal<Status | 'ALL'>('ALL');
 
-  // ----- filters applied to server -----
   qCourse = signal<string>('');
   qYear = signal<number | 'ALL'>('ALL');
   qSemester = signal<Semester | 'ALL'>('ALL');
   qStatus = signal<Status | 'ALL'>('ALL');
 
-  // ----- data state -----
   loading = signal(false);
   exporting = signal(false);
   err = signal<string | null>(null);
   rows = signal<ClassRow[]>([]);
 
-  // paging (UI dùng 1-based)
   pageIndex = signal<number>(1);
   pageSize = signal<number>(5);
   totalPagesSvr = signal<number>(1);
   totalElementsSvr = signal<number>(0);
 
-  // sort (client-side trên page hiện tại)
   sortKey = signal<SortKey>('createdAt');
   sortDir = signal<'asc' | 'desc'>('desc');
 
@@ -112,28 +107,24 @@ export class ClassCatalog {
     });
   });
 
-  // ----- stats -----
   statTotal = signal(0);
   statStudents = signal(0);
   statOnline = signal(0);
   statOffline = signal(0);
 
-  // ----- helpers for year dropdown -----
   years = computed(() => {
     const y = new Date().getFullYear();
     return [y + 1, y, y - 1, y - 2, y - 3];
   });
 
-  // ----- pagination numbers with ellipsis -----
   pageNumbers(): Array<number | '…'> {
     const total = Math.max(1, this.totalPagesSvr());
     const cur = Math.min(Math.max(1, this.pageIndex()), total);
-    const windowSize = 5; // tổng số "slot" hiển thị
+    const windowSize = 5;
 
     const out: Array<number | '…'> = [];
     const push = (v: number | '…') => out.push(v);
 
-    // luôn có trang 1
     push(1);
 
     if (total <= windowSize) {
@@ -141,7 +132,7 @@ export class ClassCatalog {
       return out;
     }
 
-    const middleCount = windowSize - 2; // trừ 2 đầu (1 và total)
+    const middleCount = windowSize - 2;
     let start = cur - Math.floor(middleCount / 2);
     let end = cur + Math.floor(middleCount / 2);
 
@@ -163,7 +154,6 @@ export class ClassCatalog {
     return out;
   }
 
-  // ----- UI handlers -----
   onSearchInput(e: Event) {
     this.uiCourse.set(((e.target as HTMLInputElement)?.value ?? '').trim());
   }
@@ -185,7 +175,7 @@ export class ClassCatalog {
     this.qYear.set(this.uiYear());
     this.qSemester.set(this.uiSemester());
     this.qStatus.set(this.uiStatus());
-    this.pageIndex.set(1); // reset về trang đầu
+    this.pageIndex.set(1);
     this.load();
   }
 
@@ -210,7 +200,6 @@ export class ClassCatalog {
     this.router.navigate(['/class-detail', id]);
   }
 
-  // ====== EXPORT PDF ======
   async exportPDF() {
     if (this.exporting()) return;
     this.exporting.set(true);
@@ -235,6 +224,7 @@ export class ClassCatalog {
           params,
           observe: 'response',
           responseType: 'blob' as const,
+          withCredentials: true,
         })
         .toPromise();
 
@@ -260,9 +250,6 @@ export class ClassCatalog {
     }
   }
 
-  // ====== EXPORT CSV ======
-
-  // ----- mapping helpers -----
   private parseVnDate(s: string): string {
     const [d, t = '00:00'] = s.split(' ');
     const [dd, MM, yyyy] = d.split('/').map(Number);
@@ -294,7 +281,6 @@ export class ClassCatalog {
     };
   }
 
-  // ----- load data from server -----
   async load() {
     this.loading.set(true);
     this.err.set(null);
@@ -316,30 +302,24 @@ export class ClassCatalog {
       const items = (res?.page?.items ?? []).map((i) => this.mapItem(i));
       this.rows.set(items);
 
-      // LẤY PAGE INFO TỪ BE
-      const bePage = res?.page?.page ?? 0; // 0-based
+      const bePage = res?.page?.page ?? 0;
       const beSize = res?.page?.size ?? this.pageSize();
       const beTotalElements = res?.page?.totalElements ?? items.length;
 
-      // *** TÍNH LẠI totalPages CHẮC CHẮN ĐÚNG ***
       const calcTotalPages = Math.max(1, Math.ceil(beTotalElements / Math.max(1, beSize)));
 
-      // Cập nhật state UI (1-based) theo kết quả đã tính lại
       this.pageIndex.set(bePage + 1);
       this.pageSize.set(beSize);
       this.totalPagesSvr.set(calcTotalPages);
       this.totalElementsSvr.set(beTotalElements);
 
-      // *** Nếu BE trả page vượt quá calcTotalPages => tự lùi về trang cuối và load lại ***
       const uiPage = this.pageIndex();
       if (uiPage > calcTotalPages) {
         this.pageIndex.set(calcTotalPages);
-        // load lại 1 lần với trang hợp lệ rồi dừng
         await this.load();
         return;
       }
 
-      // stats
       this.statTotal.set(res?.stats?.totalClasses ?? items.length);
       this.statStudents.set(res?.stats?.totalStudents ?? 0);
       this.statOnline.set(res?.stats?.onlineCount ?? 0);

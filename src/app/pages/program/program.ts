@@ -57,7 +57,6 @@ export class Program {
   err = signal<string | null>(null);
   categories = signal<TrainingCategory[]>([]);
 
-  // tùy chọn nhóm dùng cho Select “Nhóm học phần”
   categoryOptions = computed(() => {
     const names = new Set(this.categories().map((c) => c.categoryName));
     return ['ALL', ...names];
@@ -79,9 +78,7 @@ export class Program {
       const me = await firstValueFrom(this.http.get<any>(`${this.base}/users/me`));
       if (me?.cohortName) this.cohort.set(me.cohortName);
       if (me?.majorName) this.majorVI.set(this.majorMapRev[me.majorName] ?? me.majorName);
-    } catch {
-      /* giữ ALL nếu lỗi */
-    }
+    } catch {}
   }
 
   async search() {
@@ -94,9 +91,6 @@ export class Program {
         params = params.set('major', this.majorMap[this.majorVI()] ?? this.majorVI());
       if (this.category() !== 'ALL') params = params.set('category', this.category());
 
-      // Nếu bạn KHÔNG dùng envelope-interceptor thì đổi sang:
-      // const res = await firstValueFrom(this.http.get<{data: TrainingCategory[]}>(`${this.base}/training-program`, { params }));
-      // this.categories.set(res.data ?? []);
       const data = await firstValueFrom(
         this.http.get<TrainingCategory[]>(`${this.base}/training-program`, { params })
       );
@@ -110,7 +104,6 @@ export class Program {
   }
 
   clearFilters() {
-    // chỉ reset nhóm (để tránh vô tình giữ “Giáo dục đại cương” khiến kết quả chỉ có 1 nhóm)
     this.category.set('ALL');
   }
 }

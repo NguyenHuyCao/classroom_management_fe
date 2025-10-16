@@ -21,11 +21,11 @@ type Semester = 'HK1' | 'HK2' | 'HK He';
 type Role = 'TEACHER' | 'STUDENT';
 
 interface ScheduleItem {
-  day: number; // 2..7
-  start: string; // HH:mm
-  end: string; // HH:mm
-  room: string; // P203 / Online
-  link?: string; // URL meeting (có thể trống khi Offline)
+  day: number;
+  start: string;
+  end: string;
+  room: string;
+  link?: string;
 }
 interface ClassItem {
   id: string;
@@ -36,7 +36,7 @@ interface ClassItem {
   status: Status;
   size: number;
   schedule: ScheduleItem[];
-  createdAt: string; // ISO
+  createdAt: string;
   teacher?: string;
   canEnroll?: boolean;
   cannotReason?: string | null;
@@ -60,7 +60,6 @@ type PageResponse<T> = {
 export class ClassManager {
   private readonly API = 'http://localhost:8080/api/v1/classes';
 
-  // ---------------- Role ----------------
   role = signal<Role>('TEACHER');
   private readRoleFromStorage(): Role | null {
     try {
@@ -73,7 +72,6 @@ export class ClassManager {
     }
   }
 
-  // ---------------- State: My classes (server paging) ----------------
   pageIndex = signal(1);
   pageSize = signal(10);
   myLoading = signal(false);
@@ -88,21 +86,17 @@ export class ClassManager {
   myTotal = computed(() => this.mySnapshot().totalElements);
   submitting = signal(false);
 
-  // ---------------- State: Catalog (student, server paging) ----------------
   catPageIndex = signal(1);
   catPageSize = signal(5);
   catalogLoading = signal(false);
   catalogError = signal<string | null>(null);
 
-  // --- UI filters (Catalog) ---
   catUiSemester = signal<Semester | 'ALL'>('ALL');
   catUiSubjectText = signal<string>('');
 
-  // Applied filters (for API)
   catSemester = signal<Semester | 'ALL'>('ALL');
   catSubjectText = signal<string>('');
 
-  // Search pressed?
   catApplied = signal<boolean>(false);
 
   private catalogSnapshot = signal<{
@@ -113,11 +107,9 @@ export class ClassManager {
   catalogPaged = computed(() => this.catalogSnapshot().items);
   catalogTotalPages = computed(() => Math.max(1, this.catalogSnapshot().totalPages));
 
-  // ---------------- Form (teacher) ----------------
   form: FormGroup;
   editingId = signal<string | null>(null);
 
-  // Dialogs
   showConfirmDelete = signal(false);
   classToDelete = signal<ClassItem | null>(null);
   showConfirmDrop = signal(false);
@@ -126,7 +118,6 @@ export class ClassManager {
   detailEnrolled = signal<number>(0);
   canChangeCourse = signal<boolean>(true);
 
-  // Options
   semesters: { label: string; value: Semester }[] = [
     { label: 'Học kỳ 1', value: 'HK1' },
     { label: 'Học kỳ 2', value: 'HK2' },
@@ -210,7 +201,6 @@ export class ClassManager {
 
     if (this.scheduleArray.length === 0) this.addSchedule();
 
-    // thay đổi status -> cập nhật validator/phòng
     this.form.get('status')!.valueChanges.subscribe(() => this.refreshScheduleValidators());
 
     effect(() => {
@@ -219,7 +209,6 @@ export class ClassManager {
       this.loadMyClasses();
     });
     effect(() => {
-      // thay đổi bất kỳ: trang, size, filter, hoặc role -> reload
       const _ = [
         this.catPageIndex(),
         this.catPageSize(),
@@ -233,14 +222,12 @@ export class ClassManager {
     });
   }
 
-  // ------------------------ VALIDATORS ------------------------
   private isOnline(): boolean {
     return this.form.get('status')?.value === 'Online';
   }
 
   private normalizeDateForInput(val: any): string {
     if (val === null || val === undefined) return '';
-    // số timestamp (ms hoặc s)
     if (typeof val === 'number') {
       const n = val > 1e12 ? val : val * 1000;
       const d = new Date(n);
@@ -254,21 +241,17 @@ export class ClassManager {
     const s = String(val).trim();
     if (!s) return '';
 
-    // Đã đúng yyyy-MM-dd
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
-    // yyyy/MM/dd -> yyyy-MM-dd
     const ymdSlash = s.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
     if (ymdSlash) return `${ymdSlash[1]}-${ymdSlash[2]}-${ymdSlash[3]}`;
 
-    // dd/MM/yyyy hoặc dd-MM-yyyy -> yyyy-MM-dd
     const dmy = s.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
     if (dmy) {
       const [_, dd, mm, yyyy] = dmy;
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // ISO hoặc format ngày khác JS parse được
     const dt = new Date(s);
     if (!isNaN(dt.getTime())) {
       const yyyy = dt.getFullYear();
@@ -327,17 +310,14 @@ export class ClassManager {
     return (arr: AbstractControl): ValidationErrors | null => {
       const a = (arr as FormArray).controls as FormGroup[];
 
-      // 1) clear lỗi 'overlap' cũ ở tất cả group
       for (const g of a) {
         const err = { ...(g.errors || {}) };
         if ('overlap' in err) {
           delete err['overlap'];
-          // nếu còn lỗi khác thì giữ lại, nếu không thì set null
           g.setErrors(Object.keys(err).length ? err : null);
         }
       }
 
-      // 2) gom slot theo ngày và kiểm tra
       const toMin = (t: string) => {
         const [hh, mm] = (t || '').split(':');
         const h = Number(hh),
@@ -400,7 +380,6 @@ export class ClassManager {
     };
   }
 
-  // ------------------------ Utils: errors ------------------------
   isInvalid(path: string): boolean {
     const c = this.form.get(path);
     return !!c && c.touched && c.invalid;
@@ -431,12 +410,10 @@ export class ClassManager {
     if (this.role() === 'STUDENT') this.loadCatalog();
   }
 
-  // ---------- helpers ----------
   get scheduleArray() {
     return this.form.get('schedule') as FormArray;
   }
 
-  /** áp validator room/link theo trạng thái Online/Offline + set room "Online" khi Online */
   private refreshScheduleValidators() {
     const online = this.isOnline();
     this.scheduleArray.controls.forEach((g: AbstractControl) => {
@@ -478,7 +455,6 @@ export class ClassManager {
     };
   }
 
-  /** Parse "Thứ 2 • 08:00–10:00 • P203" */
   private parseScheduleLine(line: string): ScheduleItem {
     const [d, t, r] = (line || '').split('•').map((s) => s.trim());
     const m = d?.match(/(\d+)/);
@@ -488,7 +464,6 @@ export class ClassManager {
     return { day, start: start || '', end: end || '', room, link: '' };
   }
 
-  /** Map row từ API /me */
   private mapMyRow(row: any): ClassItem {
     const semCodeRaw = String(row.semesterCode || '')
       .trim()
@@ -518,7 +493,6 @@ export class ClassManager {
     };
   }
 
-  /** Map row từ API /catalog */
   private mapCatalogRow(row: any): ClassItem {
     return {
       ...this.mapMyRow(row),
@@ -541,7 +515,6 @@ export class ClassManager {
     }
   }
 
-  // ===================== API calls =====================
   private loadMyClasses() {
     this.myLoading.set(true);
     this.myError.set(null);
@@ -554,19 +527,17 @@ export class ClassManager {
       next: (res) => {
         const page = this.extractPage<any>(res);
 
-        const bePage0 = Number(page?.page ?? 0); // 0-based
+        const bePage0 = Number(page?.page ?? 0);
         const beSize = Number(page?.size ?? this.pageSize());
         const beTotalElements = Number(page?.totalElements ?? 0);
         const calcTotalPages = Math.max(1, Math.ceil(beTotalElements / Math.max(1, beSize)));
 
-        // Nếu đang vượt trang cuối, lùi về trang cuối và để effect tự load lại
         const desiredUiPage = bePage0 + 1;
         if (desiredUiPage > calcTotalPages) {
           this.pageIndex.set(calcTotalPages);
           return;
         }
 
-        // Đồng bộ lại pageIndex (1-based) theo BE
         if (this.pageIndex() !== desiredUiPage) this.pageIndex.set(desiredUiPage);
         if (this.pageSize() !== beSize) this.pageSize.set(beSize);
 
@@ -600,19 +571,17 @@ export class ClassManager {
       next: (res) => {
         const page = this.extractPage<any>(res);
 
-        const bePage0 = Number(page?.page ?? 0); // 0-based
+        const bePage0 = Number(page?.page ?? 0);
         const beSize = Number(page?.size ?? this.catPageSize());
         const beTotalElements = Number(page?.totalElements ?? 0);
         const calcTotalPages = Math.max(1, Math.ceil(beTotalElements / Math.max(1, beSize)));
 
-        // Nếu trang hiện tại vượt quá tổng trang thực -> lùi về cuối và để effect/load tự gọi lại
         const desiredUiPage = bePage0 + 1;
         if (desiredUiPage > calcTotalPages) {
           this.catPageIndex.set(calcTotalPages);
           return;
         }
 
-        // Đồng bộ lại pageIndex & pageSize theo BE
         if (this.catPageIndex() !== desiredUiPage) this.catPageIndex.set(desiredUiPage);
         if (this.catPageSize() !== beSize) this.catPageSize.set(beSize);
 
@@ -635,7 +604,6 @@ export class ClassManager {
     const out: Array<number | '…'> = [];
     const push = (v: number | '…') => out.push(v);
 
-    // luôn có trang 1
     push(1);
 
     if (total <= windowSize) {
@@ -643,7 +611,7 @@ export class ClassManager {
       return out;
     }
 
-    const middle = windowSize - 2; // trừ 2 đầu (1 và total)
+    const middle = windowSize - 2;
     let start = cur - Math.floor(middle / 2);
     let end = cur + Math.floor(middle / 2);
 
@@ -665,17 +633,14 @@ export class ClassManager {
     return out;
   }
 
-  /** Số trang cho “Lớp của tôi” */
   myPageNumbers(): Array<number | '…'> {
     return this.buildPageNumbers(this.totalPages(), this.pageIndex());
   }
 
-  /** Số trang cho Catalog (student) */
   catPageNumbers(): Array<number | '…'> {
     return this.buildPageNumbers(this.catalogTotalPages(), this.catPageIndex());
   }
 
-  // ---------- Create & Update (teacher) ----------
   private buildPayload() {
     const raw = this.form.getRawValue();
     const online = raw.status === 'Online';
@@ -692,7 +657,6 @@ export class ClassManager {
       startDate: String(raw.startDate),
       locationNote: raw.locationNote ? String(raw.locationNote).trim() : null,
       note: raw.note ? String(raw.note).trim() : null,
-      // GỬI LUÔN link nếu có (BE chấp nhận ở mọi mode)
       schedules: (raw.schedule as ScheduleItem[]).map((s) => ({
         weekdayNo: s.day as any,
         startTime: s.start,
@@ -777,7 +741,6 @@ export class ClassManager {
     });
   }
 
-  // ---------- Delete / Enroll ----------
   askDelete(item: ClassItem) {
     if (this.role() !== 'TEACHER') return;
     this.classToDelete.set(item);
@@ -839,7 +802,6 @@ export class ClassManager {
     this.classToDrop.set(null);
   }
 
-  // ---------- UI handlers ----------
   onCatSemesterChange(e: Event) {
     const v = (e.target as HTMLSelectElement | null)?.value as Semester | 'ALL' | undefined;
     if (v) this.catUiSemester.set(v);
@@ -855,27 +817,24 @@ export class ClassManager {
     this.loadCatalog();
   }
 
-  // Đi trang trong bảng "Lớp của tôi"
   goPage(i: number | '…'): void {
-    if (i === '…') return; // bỏ qua nút dấu ba chấm
+    if (i === '…') return;
     const total = this.totalPages();
-    if (i < 1 || i > total || i === this.pageIndex()) return; // không vượt biên / không set trùng
-    this.pageIndex.set(i); // effect() sẽ tự loadMyClasses()
+    if (i < 1 || i > total || i === this.pageIndex()) return; 
+    this.pageIndex.set(i); 
   }
 
-  // Đi trang trong "Catalog (student)"
   goCatalogPage(i: number | '…'): void {
-    if (i === '…') return; // bỏ qua nút dấu ba chấm
+    if (i === '…') return;
     const total = this.catalogTotalPages();
-    if (i < 1 || i > total || i === this.catPageIndex()) return; // không vượt biên / không set trùng
-    this.catPageIndex.set(i); // effect() sẽ tự loadCatalog()
+    if (i < 1 || i > total || i === this.catPageIndex()) return;
+    this.catPageIndex.set(i);
   }
 
   goDetail(code: string) {
     this.router.navigate(['/class-detail', code]);
   }
 
-  // ---------- form helpers ----------
   startCreate() {
     this.editingId.set(null);
     this.detailEnrolled.set(0);
@@ -1042,7 +1001,6 @@ export class ClassManager {
       )
     );
     if (this.scheduleArray.length === 0) this.addSchedule();
-    // áp lại validator theo trạng thái hiện tại
     this.refreshScheduleValidators();
     this.scheduleArray.updateValueAndValidity({ onlySelf: false, emitEvent: true });
   }

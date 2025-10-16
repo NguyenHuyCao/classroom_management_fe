@@ -45,7 +45,7 @@
       <button class="btn btn-primary" (click)="doSearch()">
         <i class="bi bi-search"></i> Tìm kiếm
       </button>
-      <button class="btn btn-outline-secondary" (click)="exportCSV()">
+      <button class="btn btn-outline-secondary" (click)="exportPDF()">
         <i class="bi bi-download"></i> Xuất PDF
       </button>
     </div>
@@ -115,7 +115,13 @@
           <td>{{ r.lecturer }}</td>
           <td><span class="badge bg-sem">{{ r.semester }}</span></td>
           <td>
-            <span class="badge" [ngClass]="{ 'bg-online': r.status === 'Online', 'bg-offline': r.status === 'Offline' }">
+            <span
+              class="badge"
+              [ngClass]="{
+                'bg-online': r.status === 'Online',
+                'bg-offline': r.status === 'Offline'
+              }"
+            >
               {{ r.status }}
             </span>
           </td>
@@ -142,10 +148,36 @@
     <div class="text-muted small">
       Tổng: {{ totalElementsSvr() }} lớp • Trang {{ pageIndex() }}/{{ totalPagesSvr() }}
     </div>
+
     <div class="btn-group">
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() - 1)">&laquo;</button>
-      <button class="btn btn-outline-secondary btn-sm" disabled>{{ pageIndex() }}</button>
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() + 1)">&raquo;</button>
+      <button
+        class="btn btn-outline-secondary btn-sm"
+        (click)="goPage(pageIndex() - 1)"
+        [disabled]="pageIndex() <= 1"
+      >
+        &laquo;
+      </button>
+
+      <button
+        class="btn btn-sm"
+        *ngFor="let p of pageNumbers()"
+        [disabled]="p === '…'"
+        [ngClass]="{
+          'btn-primary': p !== '…' && pageIndex() === p,
+          'btn-outline-secondary': p === '…' || pageIndex() !== p
+        }"
+        (click)="goPage(p)"
+      >
+        {{ p }}
+      </button>
+
+      <button
+        class="btn btn-outline-secondary btn-sm"
+        (click)="goPage(pageIndex() + 1)"
+        [disabled]="pageIndex() >= totalPagesSvr()"
+      >
+        &raquo;
+      </button>
     </div>
   </div>
 

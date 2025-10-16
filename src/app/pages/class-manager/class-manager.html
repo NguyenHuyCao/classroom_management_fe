@@ -7,10 +7,8 @@
     <span class="text-muted small" *ngIf="editingId()">Mã lớp: {{ editingId() }}</span>
   </div>
 
-  <!-- KHÔNG dùng ngSubmit để tránh submit sai; dùng 2 nút riêng -->
   <form [formGroup]="form" (submit)="$event.preventDefault()" novalidate>
     <div class="row g-3">
-      <!-- MÃ LỚP -->
       <div class="col-md-3">
         <label class="form-label">Mã lớp</label>
         <input class="form-control" formControlName="code" placeholder="VD: CS101-K40A" />
@@ -18,11 +16,12 @@
           <ng-container *ngIf="errOf('code')?.['required']">Mã lớp là bắt buộc.</ng-container>
           <ng-container *ngIf="errOf('code')?.['minlength']">Tối thiểu 3 ký tự.</ng-container>
           <ng-container *ngIf="errOf('code')?.['maxlength']">Tối đa 30 ký tự.</ng-container>
-          <ng-container *ngIf="errOf('code')?.['pattern']">Chỉ cho phép chữ HOA, số và dấu gạch ngang.</ng-container>
+          <ng-container *ngIf="errOf('code')?.['pattern']"
+            >Chỉ cho phép chữ HOA, số và dấu gạch ngang.</ng-container
+          >
         </div>
       </div>
 
-      <!-- TÊN LỚP -->
       <div class="col-md-5">
         <label class="form-label">Tên lớp</label>
         <input class="form-control" formControlName="name" placeholder="Tên lớp" />
@@ -33,7 +32,6 @@
         </div>
       </div>
 
-      <!-- MÔN HỌC -->
       <div class="col-md-2">
         <label class="form-label">Môn học</label>
         <select class="form-select" formControlName="subject">
@@ -41,13 +39,16 @@
           <option *ngFor="let s of subjectsRef" [value]="s">{{ s }}</option>
         </select>
         <div class="invalid-feedback d-block" *ngIf="isInvalid('subject')">
-          <ng-container *ngIf="errOf('subject')?.['required']">Mã môn học là bắt buộc.</ng-container>
-          <ng-container *ngIf="errOf('subject')?.['maxlength']">Mã môn tối đa 20 ký tự.</ng-container>
+          <ng-container *ngIf="errOf('subject')?.['required']"
+            >Mã môn học là bắt buộc.</ng-container
+          >
+          <ng-container *ngIf="errOf('subject')?.['maxlength']"
+            >Mã môn tối đa 20 ký tự.</ng-container
+          >
           <ng-container *ngIf="errOf('subject')?.['notInList']">Mã môn không hợp lệ.</ng-container>
         </div>
       </div>
 
-      <!-- HỌC KỲ -->
       <div class="col-md-2">
         <label class="form-label">Học kỳ</label>
         <select class="form-select" formControlName="semester">
@@ -58,7 +59,6 @@
         </div>
       </div>
 
-      <!-- HÌNH THỨC -->
       <div class="col-md-2">
         <label class="form-label">Hình thức</label>
         <select class="form-select" formControlName="status">
@@ -69,30 +69,36 @@
         </div>
       </div>
 
-      <!-- NĂM HỌC -->
       <div class="col-md-2">
         <label class="form-label">Năm học</label>
         <input type="number" class="form-control" formControlName="year" min="2000" />
         <div class="invalid-feedback d-block" *ngIf="isInvalid('year')">
           <ng-container *ngIf="errOf('year')?.['required']">Năm học là bắt buộc.</ng-container>
-          <ng-container *ngIf="errOf('year')?.['min']">Năm học không hợp lệ (>= 2000).</ng-container>
+          <ng-container *ngIf="errOf('year')?.['min']"
+            >Năm học không hợp lệ (>= 2000).</ng-container
+          >
         </div>
         <div class="invalid-feedback d-block" *ngIf="form.errors?.['yearMismatch']">
           Năm học phải trùng với năm của Ngày bắt đầu.
         </div>
       </div>
 
-      <!-- NGÀY BẮT ĐẦU -->
       <div class="col-md-3">
         <label class="form-label">Ngày bắt đầu</label>
         <input type="date" class="form-control" formControlName="startDate" />
         <div class="invalid-feedback d-block" *ngIf="isInvalid('startDate')">
-          <ng-container *ngIf="errOf('startDate')?.['required']">Ngày bắt đầu là bắt buộc.</ng-container>
-          <ng-container *ngIf="errOf('startDate')?.['invalidDate']">Định dạng ngày không hợp lệ (yyyy-MM-dd).</ng-container>
+          <ng-container *ngIf="errOf('startDate')?.['required']"
+            >Ngày bắt đầu là bắt buộc.</ng-container
+          >
+          <ng-container *ngIf="errOf('startDate')?.['invalidDate']"
+            >Định dạng ngày không hợp lệ (yyyy-MM-dd).</ng-container
+          >
+        </div>
+        <div class="invalid-feedback d-block" *ngIf="form.errors?.['startDatePast']">
+          Ngày bắt đầu phải từ hôm nay trở đi.
         </div>
       </div>
 
-      <!-- GHI CHÚ ĐỊA ĐIỂM -->
       <div class="col-md-3">
         <label class="form-label">Ghi chú địa điểm</label>
         <input
@@ -101,11 +107,12 @@
           placeholder="Tòa/Phòng/Khu vực..."
         />
         <div class="invalid-feedback d-block" *ngIf="isInvalid('locationNote')">
-          <ng-container *ngIf="errOf('locationNote')?.['maxlength']">Ghi chú địa điểm tối đa 255 ký tự.</ng-container>
+          <ng-container *ngIf="errOf('locationNote')?.['maxlength']"
+            >Ghi chú địa điểm tối đa 255 ký tự.</ng-container
+          >
         </div>
       </div>
 
-      <!-- SỨC CHỨA -->
       <div class="col-md-2">
         <label class="form-label">Sức chứa</label>
         <input type="number" class="form-control" formControlName="size" min="1" max="500" />
@@ -116,7 +123,6 @@
         </div>
       </div>
 
-      <!-- GHI CHÚ -->
       <div class="col-12">
         <label class="form-label">Ghi chú</label>
         <textarea
@@ -137,8 +143,10 @@
             </button>
           </div>
 
-          <!-- lỗi formArray cấp mảng -->
-          <div class="invalid-feedback d-block" *ngIf="form.get('schedule')?.errors?.['schedulesOverlap']">
+          <div
+            class="invalid-feedback d-block"
+            *ngIf="form.get('schedule')?.errors?.['schedulesOverlap']"
+          >
             Lịch học bị trùng/đè thời gian trong cùng một ngày.
           </div>
 
@@ -148,55 +156,87 @@
             *ngFor="let sch of scheduleArray.controls; let i = index"
           >
             <div [formGroupName]="i" class="row g-2 align-items-end">
-              <!-- THỨ -->
               <div class="col-md-2">
                 <label class="form-label mb-1">Thứ</label>
                 <select class="form-select" formControlName="day">
                   <option *ngFor="let w of weekdays" [value]="w.value">{{ w.label }}</option>
                 </select>
                 <div class="invalid-feedback d-block" *ngIf="schErr(i, 'day')">
-                  <ng-container *ngIf="schErr(i, 'day')?.['required']">Trường này là bắt buộc.</ng-container>
-                  <ng-container *ngIf="schErr(i, 'day')?.['min'] || schErr(i, 'day')?.['max']">
-                    Thứ hợp lệ từ 2 đến 7.
-                  </ng-container>
+                  <ng-container *ngIf="schErr(i, 'day')?.['required']"
+                    >Trường này là bắt buộc.</ng-container
+                  >
+                  <ng-container *ngIf="schErr(i, 'day')?.['min'] || schErr(i, 'day')?.['max']"
+                    >Thứ hợp lệ từ 2 đến 7.</ng-container
+                  >
                 </div>
               </div>
 
-              <!-- BẮT ĐẦU -->
               <div class="col-md-2">
                 <label class="form-label mb-1">Bắt đầu</label>
                 <input type="time" class="form-control" formControlName="start" />
                 <div class="invalid-feedback d-block" *ngIf="schErr(i, 'start')">
-                  <ng-container *ngIf="schErr(i, 'start')?.['required']">Giờ bắt đầu là bắt buộc.</ng-container>
-                  <ng-container *ngIf="schErr(i, 'start')?.['invalidTime']">Định dạng giờ không hợp lệ (HH:mm).</ng-container>
+                  <ng-container *ngIf="schErr(i, 'start')?.['required']"
+                    >Giờ bắt đầu là bắt buộc.</ng-container
+                  >
+                  <ng-container *ngIf="schErr(i, 'start')?.['invalidTime']"
+                    >Định dạng giờ không hợp lệ (HH:mm).</ng-container
+                  >
                 </div>
               </div>
 
-              <!-- KẾT THÚC -->
               <div class="col-md-2">
                 <label class="form-label mb-1">Kết thúc</label>
                 <input type="time" class="form-control" formControlName="end" />
                 <div class="invalid-feedback d-block" *ngIf="schErr(i, 'end')">
-                  <ng-container *ngIf="schErr(i, 'end')?.['required']">Giờ kết thúc là bắt buộc.</ng-container>
-                  <ng-container *ngIf="schErr(i, 'end')?.['invalidTime']">Định dạng giờ không hợp lệ (HH:mm).</ng-container>
+                  <ng-container *ngIf="schErr(i, 'end')?.['required']"
+                    >Giờ kết thúc là bắt buộc.</ng-container
+                  >
+                  <ng-container *ngIf="schErr(i, 'end')?.['invalidTime']"
+                    >Định dạng giờ không hợp lệ (HH:mm).</ng-container
+                  >
                 </div>
               </div>
 
-              <!-- PHÒNG / LINK -->
-              <div class="col-md-4">
-                <label class="form-label mb-1">Phòng / Link (Online)</label>
+              <!-- PHÒNG -->
+              <div class="col-md-2">
+                <label class="form-label mb-1">Phòng</label>
                 <input
                   class="form-control"
                   formControlName="room"
-                  placeholder="P203 hoặc https://..."
+                  placeholder="P203"
+                  [disabled]="form.get('status')?.value === 'Online'"
                 />
                 <div class="invalid-feedback d-block" *ngIf="schErr(i, 'room')">
-                  <ng-container *ngIf="schErr(i, 'room')?.['required']">Phòng/Link là bắt buộc.</ng-container>
-                  <ng-container *ngIf="schErr(i, 'room')?.['maxlength']">Tối đa 50 ký tự.</ng-container>
+                  <ng-container *ngIf="schErr(i, 'room')?.['required']"
+                    >Phòng là bắt buộc khi lớp Offline.</ng-container
+                  >
+                  <ng-container *ngIf="schErr(i, 'room')?.['maxlength']"
+                    >Tối đa 50 ký tự.</ng-container
+                  >
                 </div>
               </div>
 
-              <!-- NÚT XOÁ -->
+              <!-- LINK -->
+              <div class="col-md-2">
+                <label class="form-label mb-1">Link (chỉ khi Online)</label>
+                <input
+                  class="form-control"
+                  formControlName="link"
+                  placeholder="https://meet/zoom/teams..."
+                />
+                <div class="invalid-feedback d-block" *ngIf="schErr(i, 'link')">
+                  <ng-container *ngIf="schErr(i, 'link')?.['required']"
+                    >Link là bắt buộc khi lớp Online.</ng-container
+                  >
+                  <ng-container *ngIf="schErr(i, 'link')?.['maxlength']"
+                    >Tối đa 255 ký tự.</ng-container
+                  >
+                  <ng-container *ngIf="schErr(i, 'link')?.['invalidUrl']"
+                    >Định dạng link không hợp lệ.</ng-container
+                  >
+                </div>
+              </div>
+
               <div class="col-md-2">
                 <button
                   type="button"
@@ -208,13 +248,9 @@
                 </button>
               </div>
 
-              <!-- lỗi cấp group: timeOrder / overlap -->
               <div class="col-12">
                 <div class="invalid-feedback d-block" *ngIf="schErr(i) && schErr(i)?.['timeOrder']">
                   Giờ bắt đầu phải nhỏ hơn giờ kết thúc.
-                </div>
-                <div class="invalid-feedback d-block" *ngIf="schErr(i) && schErr(i)?.['overlap']">
-                  Khung giờ bị trùng với một lịch khác trong cùng ngày.
                 </div>
               </div>
             </div>
@@ -228,20 +264,15 @@
         <button type="button" class="btn btn-outline-secondary me-2" (click)="startCreate()">
           Làm mới
         </button>
-
-        <!-- Nút tạo -->
         <button
           *ngIf="!editingId()"
           type="button"
           class="btn btn-primary"
           [disabled]="submitting()"
-          (click)="createClass"
           (click)="createClass()"
         >
           Tạo lớp
         </button>
-
-        <!-- Nút cập nhật -->
         <button
           *ngIf="editingId()"
           type="button"
@@ -310,7 +341,10 @@
           <td class="text-start">{{ c.teacher }}</td>
           <td class="text-start">
             <div class="sch" *ngFor="let s of c.schedule">
-              <i class="bi bi-calendar2-week me-1"></i> Thứ {{ s.day }} • {{ s.start }}–{{ s.end }} • {{ s.room }}
+              <i class="bi bi-calendar2-week me-1"></i> Thứ {{ s.day }} • {{ s.start }}–{{
+                s.end
+              }}
+              • {{ s.room }}
             </div>
           </td>
           <td class="text-center">
@@ -338,12 +372,34 @@
 
   <div class="d-flex justify-content-between align-items-center">
     <div class="text-muted small">Trang {{ catPageIndex() }}/{{ catalogTotalPages() }}</div>
+
     <div class="btn-group">
-      <button class="btn btn-outline-secondary btn-sm" (click)="goCatalogPage(catPageIndex() - 1)">
+      <button
+        class="btn btn-outline-secondary btn-sm"
+        (click)="goCatalogPage(catPageIndex() - 1)"
+        [disabled]="catPageIndex() <= 1"
+      >
         &laquo;
       </button>
-      <button class="btn btn-outline-secondary btn-sm" disabled>{{ catPageIndex() }}</button>
-      <button class="btn btn-outline-secondary btn-sm" (click)="goCatalogPage(catPageIndex() + 1)">
+
+      <button
+        class="btn btn-sm"
+        *ngFor="let p of catPageNumbers()"
+        [disabled]="p === '…'"
+        [ngClass]="{
+          'btn-primary': p !== '…' && catPageIndex() === p,
+          'btn-outline-secondary': p === '…' || catPageIndex() !== p
+        }"
+        (click)="goCatalogPage(p)"
+      >
+        {{ p }}
+      </button>
+
+      <button
+        class="btn btn-outline-secondary btn-sm"
+        (click)="goCatalogPage(catPageIndex() + 1)"
+        [disabled]="catPageIndex() >= catalogTotalPages()"
+      >
         &raquo;
       </button>
     </div>
@@ -397,7 +453,10 @@
           </td>
           <td class="text-start">
             <div class="sch" *ngFor="let s of c.schedule">
-              <i class="bi bi-calendar2-week me-1"></i> Thứ {{ s.day }} • {{ s.start }}–{{ s.end }} • {{ s.room }}
+              <i class="bi bi-calendar2-week me-1"></i> Thứ {{ s.day }} • {{ s.start }}–{{
+                s.end
+              }}
+              • {{ s.room }}
             </div>
           </td>
           <td class="text-center" (click)="$event.stopPropagation()">
@@ -419,7 +478,9 @@
 
         <tr *ngIf="!paged().length">
           <td colspan="7" class="text-center text-muted">
-            {{ role() === 'TEACHER' ? 'Chưa có lớp nào bạn quản lý.' : 'Bạn chưa đăng ký lớp nào.' }}
+            {{
+              role() === 'TEACHER' ? 'Chưa có lớp nào bạn quản lý.' : 'Bạn chưa đăng ký lớp nào.'
+            }}
           </td>
         </tr>
       </tbody>
@@ -430,12 +491,34 @@
     <div class="text-muted small">
       Tổng: {{ myTotal() }} • Trang {{ pageIndex() }}/{{ totalPages() }}
     </div>
+
     <div class="btn-group">
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() - 1)">
+      <button
+        class="btn btn-outline-secondary btn-sm"
+        (click)="goPage(pageIndex() - 1)"
+        [disabled]="pageIndex() <= 1"
+      >
         &laquo;
       </button>
-      <button class="btn btn-outline-secondary btn-sm" disabled>{{ pageIndex() }}</button>
-      <button class="btn btn-outline-secondary btn-sm" (click)="goPage(pageIndex() + 1)">
+
+      <button
+        class="btn btn-sm"
+        *ngFor="let p of myPageNumbers()"
+        [disabled]="p === '…'"
+        [ngClass]="{
+          'btn-primary': p !== '…' && pageIndex() === p,
+          'btn-outline-secondary': p === '…' || pageIndex() !== p
+        }"
+        (click)="goPage(p)"
+      >
+        {{ p }}
+      </button>
+
+      <button
+        class="btn btn-outline-secondary btn-sm"
+        (click)="goPage(pageIndex() + 1)"
+        [disabled]="pageIndex() >= totalPages()"
+      >
         &raquo;
       </button>
     </div>

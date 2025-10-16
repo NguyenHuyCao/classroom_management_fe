@@ -22,9 +22,10 @@ type Role = 'TEACHER' | 'STUDENT';
 
 interface ScheduleItem {
   day: number; // 2..7
-  start: string;
-  end: string;
-  room: string;
+  start: string; // HH:mm
+  end: string; // HH:mm
+  room: string; // P203 / Online
+  link?: string; // URL meeting (có thể trống khi Offline)
 }
 interface ClassItem {
   id: string;
@@ -89,7 +90,7 @@ export class ClassManager {
 
   // ---------------- State: Catalog (student, server paging) ----------------
   catPageIndex = signal(1);
-  catPageSize = signal(8);
+  catPageSize = signal(5);
   catalogLoading = signal(false);
   catalogError = signal<string | null>(null);
 
@@ -153,8 +154,6 @@ export class ClassManager {
 
     this.form = this.fb.group(
       {
-        // BE: classCode @NotBlank, @Size(max=30)
-        // FE: ràng thêm minLength + pattern uppercase/digits/hyphen (ổn, không trái BE)
         code: this.fb.control<string>('', {
           nonNullable: true,
           validators: [
@@ -164,14 +163,10 @@ export class ClassManager {
             this.patternValidator(/^[A-Z0-9-]+$/),
           ],
         }),
-
-        // BE: className @NotBlank, @Size(max=200)
         name: this.fb.control<string>('', {
           nonNullable: true,
           validators: [Validators.required, Validators.minLength(3), Validators.maxLength(200)],
         }),
-
-        // BE: courseCode @NotBlank, @Size(max=20)
         subject: this.fb.control<string>('', {
           nonNullable: true,
           validators: [
@@ -180,56 +175,43 @@ export class ClassManager {
             this.mustInList(() => this.subjectsRef),
           ],
         }),
-
-        // BE: semesterCode pattern HK1|HK2|HK He
         semester: this.fb.control<Semester>('HK1', {
           nonNullable: true,
           validators: [Validators.required],
         }),
-
-        // BE: deliveryMode pattern ONLINE|OFFLINE -> FE chọn Online/Offline
         status: this.fb.control<Status>('Offline', {
           nonNullable: true,
           validators: [Validators.required],
         }),
-
-        // BE: capacity @NotNull @Min(1) @Max(500)
         size: this.fb.control<number>(40, {
           nonNullable: true,
           validators: [Validators.required, Validators.min(1), Validators.max(500)],
         }),
-
-        // BE: academicYear @NotNull @Min(2000)
         year: this.fb.control<number>(new Date().getFullYear(), {
           nonNullable: true,
           validators: [Validators.required, Validators.min(2000)],
         }),
-
-        // BE: startDate @NotBlank (yyyy-MM-dd)
         startDate: this.fb.control<string>('', {
           nonNullable: true,
           validators: [Validators.required, this.dateStringValidator()],
         }),
-
-        // BE: locationNote @Size(max=255)
         locationNote: this.fb.control<string>('', {
           nonNullable: true,
           validators: [Validators.maxLength(255)],
         }),
-
-        // BE: note free
         note: this.fb.control<string>('', { nonNullable: true }),
-
-        // BE: schedules @Size(min=1)
-        //  each: weekdayNo [1..7], start/end NotBlank(HH:mm), roomCode NotBlank <=50
+        // FormArray schedules
         schedule: this.fb.array<FormGroup<any>>([], {
           validators: [this.schedulesNoOverlapValidator()],
         }),
       },
-      { validators: [this.yearMatchesStartDateValidator()] }
+      { validators: [this.yearMatchesStartDateValidator(), this.startDateNotPastValidator()] }
     );
 
     if (this.scheduleArray.length === 0) this.addSchedule();
+
+    // thay đổi status -> cập nhật validator/phòng
+    this.form.get('status')!.valueChanges.subscribe(() => this.refreshScheduleValidators());
 
     effect(() => {
       this.pageIndex();
@@ -237,19 +219,66 @@ export class ClassManager {
       this.loadMyClasses();
     });
     effect(() => {
+      // thay đổi bất kỳ: trang, size, filter, hoặc role -> reload
       const _ = [
         this.catPageIndex(),
         this.catPageSize(),
         this.catSemester(),
         this.catSubjectText(),
+        this.role(),
       ];
-      if (this.role() === 'STUDENT' && this.catApplied()) {
+      if (this.role() === 'STUDENT') {
         this.loadCatalog();
       }
     });
   }
 
   // ------------------------ VALIDATORS ------------------------
+  private isOnline(): boolean {
+    return this.form.get('status')?.value === 'Online';
+  }
+
+  private normalizeDateForInput(val: any): string {
+    if (val === null || val === undefined) return '';
+    // số timestamp (ms hoặc s)
+    if (typeof val === 'number') {
+      const n = val > 1e12 ? val : val * 1000;
+      const d = new Date(n);
+      if (isNaN(d.getTime())) return '';
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    const s = String(val).trim();
+    if (!s) return '';
+
+    // Đã đúng yyyy-MM-dd
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+    // yyyy/MM/dd -> yyyy-MM-dd
+    const ymdSlash = s.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+    if (ymdSlash) return `${ymdSlash[1]}-${ymdSlash[2]}-${ymdSlash[3]}`;
+
+    // dd/MM/yyyy hoặc dd-MM-yyyy -> yyyy-MM-dd
+    const dmy = s.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+    if (dmy) {
+      const [_, dd, mm, yyyy] = dmy;
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // ISO hoặc format ngày khác JS parse được
+    const dt = new Date(s);
+    if (!isNaN(dt.getTime())) {
+      const yyyy = dt.getFullYear();
+      const mm = String(dt.getMonth() + 1).padStart(2, '0');
+      const dd = String(dt.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    return '';
+  }
 
   private patternValidator(regex: RegExp): ValidatorFn {
     return (c: AbstractControl): ValidationErrors | null => {
@@ -257,7 +286,6 @@ export class ClassManager {
       return !v ? null : regex.test(v) ? null : { pattern: true };
     };
   }
-
   private mustInList(list: () => string[]): ValidatorFn {
     return (c: AbstractControl): ValidationErrors | null => {
       const v = String(c.value || '').trim();
@@ -265,7 +293,6 @@ export class ClassManager {
       return list().includes(v) ? null : { notInList: true };
     };
   }
-
   private dateStringValidator(): ValidatorFn {
     return (c: AbstractControl): ValidationErrors | null => {
       const v = String(c.value || '').trim();
@@ -276,7 +303,6 @@ export class ClassManager {
       return isNaN(d.getTime()) ? { invalidDate: true } : null;
     };
   }
-
   private timeStringValidator(): ValidatorFn {
     return (c: AbstractControl): ValidationErrors | null => {
       const v = String(c.value || '').trim();
@@ -284,8 +310,6 @@ export class ClassManager {
       return /^\d{2}:\d{2}$/.test(v) ? null : { invalidTime: true };
     };
   }
-
-  /** start < end cho từng schedule group */
   private timeOrderValidator(): ValidatorFn {
     return (group: AbstractControl): ValidationErrors | null => {
       const g = group as FormGroup;
@@ -299,44 +323,69 @@ export class ClassManager {
       return toMin(s) < toMin(e) ? null : { timeOrder: true };
     };
   }
-
-  /** Không cho 2 lịch cùng ngày bị trùng/đè nhau */
   private schedulesNoOverlapValidator(): ValidatorFn {
     return (arr: AbstractControl): ValidationErrors | null => {
       const a = (arr as FormArray).controls as FormGroup[];
-      const slots: { day: number; start: number; end: number; idx: number }[] = [];
+
+      // 1) clear lỗi 'overlap' cũ ở tất cả group
+      for (const g of a) {
+        const err = { ...(g.errors || {}) };
+        if ('overlap' in err) {
+          delete err['overlap'];
+          // nếu còn lỗi khác thì giữ lại, nếu không thì set null
+          g.setErrors(Object.keys(err).length ? err : null);
+        }
+      }
+
+      // 2) gom slot theo ngày và kiểm tra
       const toMin = (t: string) => {
         const [hh, mm] = (t || '').split(':');
-        const h = Number(hh);
-        const m = Number(mm);
+        const h = Number(hh),
+          m = Number(mm);
         return isFinite(h) && isFinite(m) ? h * 60 + m : NaN;
       };
+
+      const byDay: Record<number, { start: number; end: number; idx: number }[]> = {};
       a.forEach((g, idx) => {
         const day = Number(g.get('day')?.value);
         const s = toMin(String(g.get('start')?.value || ''));
         const e = toMin(String(g.get('end')?.value || ''));
-        if (!isNaN(day) && !isNaN(s) && !isNaN(e)) {
-          slots.push({ day, start: s, end: e, idx });
+        if (day >= 2 && day <= 7 && !isNaN(s) && !isNaN(e)) {
+          (byDay[day] ||= []).push({ start: s, end: e, idx });
         }
       });
-      const byDay: Record<number, { start: number; end: number; idx: number }[]> = {};
-      for (const it of slots) {
-        byDay[it.day] = byDay[it.day] || [];
-        byDay[it.day].push({ start: it.start, end: it.end, idx: it.idx });
-      }
+
+      let hasOverlap = false;
       for (const d of Object.keys(byDay)) {
         const list = byDay[+d].sort((x, y) => x.start - y.start);
         for (let i = 1; i < list.length; i++) {
-          const prev = list[i - 1];
-          const cur = list[i];
+          const prev = list[i - 1],
+            cur = list[i];
           if (cur.start < prev.end) {
-            (a[prev.idx] as FormGroup).setErrors({ ...(a[prev.idx].errors || {}), overlap: true });
-            (a[cur.idx] as FormGroup).setErrors({ ...(a[cur.idx].errors || {}), overlap: true });
-            return { schedulesOverlap: true };
+            hasOverlap = true;
+            const g1 = a[prev.idx] as FormGroup;
+            const g2 = a[cur.idx] as FormGroup;
+            g1.setErrors({ ...(g1.errors || {}), overlap: true });
+            g2.setErrors({ ...(g2.errors || {}), overlap: true });
           }
         }
       }
-      return null;
+
+      return hasOverlap ? { schedulesOverlap: true } : null;
+    };
+  }
+
+  private startDateNotPastValidator(): ValidatorFn {
+    return (group: AbstractControl): ValidationErrors | null => {
+      const g = group as FormGroup;
+      const sd = String(g.get('startDate')?.value || '').trim();
+      if (!sd) return null;
+
+      const start = new Date(sd + 'T00:00:00');
+      const today = new Date();
+      const todayYMD = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+      return start >= todayYMD ? null : { startDatePast: true };
     };
   }
 
@@ -351,7 +400,7 @@ export class ClassManager {
     };
   }
 
-  // ------------------------ Utils: errors (dành cho HTML nếu cần hiển thị) ------------------------
+  // ------------------------ Utils: errors ------------------------
   isInvalid(path: string): boolean {
     const c = this.form.get(path);
     return !!c && c.touched && c.invalid;
@@ -387,6 +436,48 @@ export class ClassManager {
     return this.form.get('schedule') as FormArray;
   }
 
+  /** áp validator room/link theo trạng thái Online/Offline + set room "Online" khi Online */
+  private refreshScheduleValidators() {
+    const online = this.isOnline();
+    this.scheduleArray.controls.forEach((g: AbstractControl) => {
+      const fg = g as FormGroup;
+      const roomCtrl = fg.get('room')!;
+      const linkCtrl = fg.get('link')!;
+
+      roomCtrl.setValidators([this.requiredWhen(() => !online), Validators.maxLength(50)]);
+      linkCtrl.setValidators([
+        this.requiredWhen(() => online),
+        Validators.maxLength(255),
+        this.urlValidator(),
+      ]);
+
+      if (online) {
+        roomCtrl.setValue('Online');
+      } else if (roomCtrl.value === 'Online') {
+        roomCtrl.setValue('');
+      }
+
+      roomCtrl.updateValueAndValidity({ emitEvent: false });
+      linkCtrl.updateValueAndValidity({ emitEvent: false });
+    });
+  }
+
+  private requiredWhen(predicate: () => boolean): ValidatorFn {
+    return (c: AbstractControl): ValidationErrors | null => {
+      const need = predicate();
+      const v = (c.value ?? '').toString().trim();
+      return need && !v ? { required: true } : null;
+    };
+  }
+  private urlValidator(): ValidatorFn {
+    const urlRe = /^(https?:\/\/)[\w.-]+(?:\.[\w\.-]+)+(?:[\/\w\.\-~:%+?#=&]*)?$/i;
+    return (c: AbstractControl): ValidationErrors | null => {
+      const v = String(c.value || '').trim();
+      if (!v) return null;
+      return urlRe.test(v) ? null : { invalidUrl: true };
+    };
+  }
+
   /** Parse "Thứ 2 • 08:00–10:00 • P203" */
   private parseScheduleLine(line: string): ScheduleItem {
     const [d, t, r] = (line || '').split('•').map((s) => s.trim());
@@ -394,7 +485,7 @@ export class ClassManager {
     const day = m ? Number(m[1]) : 2;
     const [start, end] = (t || '').split('–').map((s) => s.trim());
     const room = (r || '').trim();
-    return { day, start: start || '', end: end || '', room };
+    return { day, start: start || '', end: end || '', room, link: '' };
   }
 
   /** Map row từ API /me */
@@ -451,21 +542,39 @@ export class ClassManager {
   }
 
   // ===================== API calls =====================
-
   private loadMyClasses() {
     this.myLoading.set(true);
     this.myError.set(null);
+
     const params = new HttpParams()
       .set('page', String(this.pageIndex() - 1))
       .set('size', String(this.pageSize()));
+
     this.http.get<any>(`${this.API}/me`, { params }).subscribe({
       next: (res) => {
         const page = this.extractPage<any>(res);
+
+        const bePage0 = Number(page?.page ?? 0); // 0-based
+        const beSize = Number(page?.size ?? this.pageSize());
+        const beTotalElements = Number(page?.totalElements ?? 0);
+        const calcTotalPages = Math.max(1, Math.ceil(beTotalElements / Math.max(1, beSize)));
+
+        // Nếu đang vượt trang cuối, lùi về trang cuối và để effect tự load lại
+        const desiredUiPage = bePage0 + 1;
+        if (desiredUiPage > calcTotalPages) {
+          this.pageIndex.set(calcTotalPages);
+          return;
+        }
+
+        // Đồng bộ lại pageIndex (1-based) theo BE
+        if (this.pageIndex() !== desiredUiPage) this.pageIndex.set(desiredUiPage);
+        if (this.pageSize() !== beSize) this.pageSize.set(beSize);
+
         const items = (page?.items ?? []).map((r: any) => this.mapMyRow(r));
         this.mySnapshot.set({
           items,
-          totalPages: page?.totalPages ?? 1,
-          totalElements: page?.totalElements ?? items.length,
+          totalPages: calcTotalPages,
+          totalElements: beTotalElements,
         });
       },
       error: (e) => this.myError.set(e?.message || 'Không tải được danh sách lớp của bạn.'),
@@ -490,11 +599,28 @@ export class ClassManager {
     this.http.get<any>(`${this.API}/catalog`, { params }).subscribe({
       next: (res) => {
         const page = this.extractPage<any>(res);
+
+        const bePage0 = Number(page?.page ?? 0); // 0-based
+        const beSize = Number(page?.size ?? this.catPageSize());
+        const beTotalElements = Number(page?.totalElements ?? 0);
+        const calcTotalPages = Math.max(1, Math.ceil(beTotalElements / Math.max(1, beSize)));
+
+        // Nếu trang hiện tại vượt quá tổng trang thực -> lùi về cuối và để effect/load tự gọi lại
+        const desiredUiPage = bePage0 + 1;
+        if (desiredUiPage > calcTotalPages) {
+          this.catPageIndex.set(calcTotalPages);
+          return;
+        }
+
+        // Đồng bộ lại pageIndex & pageSize theo BE
+        if (this.catPageIndex() !== desiredUiPage) this.catPageIndex.set(desiredUiPage);
+        if (this.catPageSize() !== beSize) this.catPageSize.set(beSize);
+
         const items = (page?.items ?? []).map((r: any) => this.mapCatalogRow(r));
         this.catalogSnapshot.set({
           items,
-          totalPages: page?.totalPages ?? 1,
-          totalElements: page?.totalElements ?? items.length,
+          totalPages: calcTotalPages,
+          totalElements: beTotalElements,
         });
       },
       error: (e) => this.catalogError.set(e?.message || 'Không tải được catalog.'),
@@ -502,15 +628,58 @@ export class ClassManager {
     });
   }
 
+  private buildPageNumbers(total: number, cur: number, windowSize = 7): Array<number | '…'> {
+    total = Math.max(1, Number(total) || 1);
+    cur = Math.min(Math.max(1, Number(cur) || 1), total);
+
+    const out: Array<number | '…'> = [];
+    const push = (v: number | '…') => out.push(v);
+
+    // luôn có trang 1
+    push(1);
+
+    if (total <= windowSize) {
+      for (let p = 2; p <= total; p++) push(p);
+      return out;
+    }
+
+    const middle = windowSize - 2; // trừ 2 đầu (1 và total)
+    let start = cur - Math.floor(middle / 2);
+    let end = cur + Math.floor(middle / 2);
+
+    if (start < 2) {
+      end += 2 - start;
+      start = 2;
+    }
+    if (end > total - 1) {
+      const d = end - (total - 1);
+      start = Math.max(2, start - d);
+      end = total - 1;
+    }
+
+    if (start > 2) push('…');
+    for (let p = start; p <= end; p++) push(p);
+    if (end < total - 1) push('…');
+
+    push(total);
+    return out;
+  }
+
+  /** Số trang cho “Lớp của tôi” */
+  myPageNumbers(): Array<number | '…'> {
+    return this.buildPageNumbers(this.totalPages(), this.pageIndex());
+  }
+
+  /** Số trang cho Catalog (student) */
+  catPageNumbers(): Array<number | '…'> {
+    return this.buildPageNumbers(this.catalogTotalPages(), this.catPageIndex());
+  }
+
   // ---------- Create & Update (teacher) ----------
   private buildPayload() {
     const raw = this.form.getRawValue();
-    const isOnline = raw.status === 'Online';
-
-    // Chuẩn hóa gửi đúng theo BE:
-    // - semesterCode: 'HK1' | 'HK2' | 'HK He'
-    // - roomCode: luôn có (BE yêu cầu @NotBlank) -> nếu Online gửi 'Online' làm roomCode, link = room (URL/text)
-    const semesterCode: string = raw.semester === 'HK He' ? 'HK He' : raw.semester; // bỏ 'HKHE'
+    const online = raw.status === 'Online';
+    const semesterCode: string = raw.semester === 'HK He' ? 'HK He' : raw.semester;
 
     return {
       classCode: String(raw.code || '').trim(),
@@ -518,17 +687,18 @@ export class ClassManager {
       courseCode: String(raw.subject || '').trim(),
       semesterCode,
       academicYear: Number(raw.year),
-      deliveryMode: isOnline ? 'ONLINE' : 'OFFLINE',
+      deliveryMode: online ? 'ONLINE' : 'OFFLINE',
       capacity: Number(raw.size),
       startDate: String(raw.startDate),
       locationNote: raw.locationNote ? String(raw.locationNote).trim() : null,
       note: raw.note ? String(raw.note).trim() : null,
+      // GỬI LUÔN link nếu có (BE chấp nhận ở mọi mode)
       schedules: (raw.schedule as ScheduleItem[]).map((s) => ({
-        weekdayNo: s.day as any, // server accept Short/Number
+        weekdayNo: s.day as any,
         startTime: s.start,
         endTime: s.end,
-        roomCode: isOnline ? 'Online' : (s.room || '').slice(0, 50), // ≤ 50
-        link: isOnline ? s.room : '',
+        roomCode: online ? 'Online' : (s.room || '').slice(0, 50),
+        link: (s.link || '').trim(),
       })),
     };
   }
@@ -583,7 +753,7 @@ export class ClassManager {
     const body = this.buildPayload();
     const updateBody: any = {
       className: body.className,
-      semesterCode: body.semesterCode, // 'HK1' | 'HK2' | 'HK He'
+      semesterCode: body.semesterCode,
       academicYear: body.academicYear,
       deliveryMode: body.deliveryMode,
       capacity: body.capacity,
@@ -685,15 +855,20 @@ export class ClassManager {
     this.loadCatalog();
   }
 
-  goPage(i: number) {
+  // Đi trang trong bảng "Lớp của tôi"
+  goPage(i: number | '…'): void {
+    if (i === '…') return; // bỏ qua nút dấu ba chấm
     const total = this.totalPages();
-    if (i < 1 || i > total) return;
-    this.pageIndex.set(i);
+    if (i < 1 || i > total || i === this.pageIndex()) return; // không vượt biên / không set trùng
+    this.pageIndex.set(i); // effect() sẽ tự loadMyClasses()
   }
-  goCatalogPage(i: number) {
+
+  // Đi trang trong "Catalog (student)"
+  goCatalogPage(i: number | '…'): void {
+    if (i === '…') return; // bỏ qua nút dấu ba chấm
     const total = this.catalogTotalPages();
-    if (i < 1 || i > total) return;
-    this.catPageIndex.set(i);
+    if (i < 1 || i > total || i === this.catPageIndex()) return; // không vượt biên / không set trùng
+    this.catPageIndex.set(i); // effect() sẽ tự loadCatalog()
   }
 
   goDetail(code: string) {
@@ -725,6 +900,7 @@ export class ClassManager {
 
     this.clearFormArray(this.scheduleArray);
     this.addSchedule();
+    this.refreshScheduleValidators();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -736,7 +912,6 @@ export class ClassManager {
         this.detailEnrolled.set(Number(d.enrolled ?? 0));
         this.canChangeCourse.set((this.detailEnrolled() ?? 0) === 0);
 
-        // chấp nhận HKHE/HK He từ server; FE set 'HK He' cho case hè
         const semCodeRaw = String(d.semesterCode || '')
           .trim()
           .toUpperCase();
@@ -757,7 +932,7 @@ export class ClassManager {
             : 'Offline') as Status,
           size: d.capacity,
           year: d.academicYear,
-          startDate: d.startDate || '',
+          startDate: this.normalizeDateForInput(d.startDate),
           locationNote: d.locationNote || '',
           note: d.note || '',
         });
@@ -766,7 +941,8 @@ export class ClassManager {
           day: Number(s.weekdayNo),
           start: s.startTime,
           end: s.endTime,
-          room: s.roomCode || s.link || '',
+          room: s.roomCode || '',
+          link: s.link || '',
         }));
         this.setSchedules(schedules);
 
@@ -791,9 +967,9 @@ export class ClassManager {
   }
 
   addSchedule() {
+    const online = this.isOnline();
     const g = this.fb.group(
       {
-        // FE đang support Thứ 2..7 -> min 2 max 7 (BE cho 1..7 vẫn ok vì FE không gửi 1)
         day: this.fb.control<number>(2, {
           nonNullable: true,
           validators: [Validators.required, Validators.min(2), Validators.max(7)],
@@ -806,10 +982,17 @@ export class ClassManager {
           nonNullable: true,
           validators: [Validators.required, this.timeStringValidator()],
         }),
-        // BE: roomCode ≤ 50
-        room: this.fb.control<string>('P203', {
+        room: this.fb.control<string>(online ? 'Online' : 'P203', {
           nonNullable: true,
-          validators: [Validators.required, Validators.maxLength(50)],
+          validators: [this.requiredWhen(() => !this.isOnline()), Validators.maxLength(50)],
+        }),
+        link: this.fb.control<string>('', {
+          nonNullable: true,
+          validators: [
+            this.requiredWhen(() => this.isOnline()),
+            Validators.maxLength(255),
+            this.urlValidator(),
+          ],
         }),
       },
       { validators: [this.timeOrderValidator()] }
@@ -841,10 +1024,17 @@ export class ClassManager {
               nonNullable: true,
               validators: [Validators.required, this.timeStringValidator()],
             }),
-            // BE: roomCode ≤ 50
-            room: this.fb.control<string>(it.room, {
+            room: this.fb.control<string>(it.room || '', {
               nonNullable: true,
-              validators: [Validators.required, Validators.maxLength(50)],
+              validators: [this.requiredWhen(() => !this.isOnline()), Validators.maxLength(50)],
+            }),
+            link: this.fb.control<string>(it.link || '', {
+              nonNullable: true,
+              validators: [
+                this.requiredWhen(() => this.isOnline()),
+                Validators.maxLength(255),
+                this.urlValidator(),
+              ],
             }),
           },
           { validators: [this.timeOrderValidator()] }
@@ -852,6 +1042,8 @@ export class ClassManager {
       )
     );
     if (this.scheduleArray.length === 0) this.addSchedule();
+    // áp lại validator theo trạng thái hiện tại
+    this.refreshScheduleValidators();
     this.scheduleArray.updateValueAndValidity({ onlySelf: false, emitEvent: true });
   }
 

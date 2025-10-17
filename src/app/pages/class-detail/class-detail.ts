@@ -1,7 +1,7 @@
 import { Component, signal, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { HttpClient, HttpClientModule, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { SectionTitleComponent } from '../../components/title/section-title.component';
 import { ConfirmDialog } from '../../components/confirm/confirm-dialog';
 import { ToastService } from '../../components/toast/toast.service';

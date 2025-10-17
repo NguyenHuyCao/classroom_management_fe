@@ -17,14 +17,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authReq).pipe(
     catchError((err) => {
-      const isUnauthorized =
-        (err?.status === 401 ||
-          err?.status === 403 ||
-          (err instanceof ApiError &&
-            (err.code === 'UNAUTHORIZED' || err.code === 'TOKEN_EXPIRED'))) &&
-        !req.headers.has('X-Refresh-Attempt');
+      const code = err instanceof ApiError ? err.code : err?.error?.code;
+      const isTokenExpiredCode = code === 'TOKEN_EXPIRED';
 
-      if (isUnauthorized) {
+      const shouldRefresh =
+        (err?.status === 401 || isTokenExpiredCode) && !req.headers.has('X-Refresh-Attempt');
+
+      if (shouldRefresh) {
         return from(auth.refresh()).pipe(
           switchMap((at) =>
             next(
@@ -36,7 +35,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
               })
             )
           ),
-          // Refresh thất bại -> đăng xuất + về login
           catchError((refreshErr) => {
             auth.logout();
             try {
@@ -52,3 +50,4 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     })
   );
 };
+

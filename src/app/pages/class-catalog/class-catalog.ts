@@ -284,6 +284,7 @@ export class ClassCatalog {
   async load() {
     this.loading.set(true);
     this.err.set(null);
+
     try {
       const params: Record<string, any> = { page: this.pageIndex() - 1, size: this.pageSize() };
       const course = this.qCourse().trim();
@@ -305,20 +306,12 @@ export class ClassCatalog {
       const bePage = res?.page?.page ?? 0;
       const beSize = res?.page?.size ?? this.pageSize();
       const beTotalElements = res?.page?.totalElements ?? items.length;
-
-      const calcTotalPages = Math.max(1, Math.ceil(beTotalElements / Math.max(1, beSize)));
+      const beTotalPages = Math.max(1, res?.page?.totalPages ?? 1);
 
       this.pageIndex.set(bePage + 1);
       this.pageSize.set(beSize);
-      this.totalPagesSvr.set(calcTotalPages);
       this.totalElementsSvr.set(beTotalElements);
-
-      const uiPage = this.pageIndex();
-      if (uiPage > calcTotalPages) {
-        this.pageIndex.set(calcTotalPages);
-        await this.load();
-        return;
-      }
+      this.totalPagesSvr.set(beTotalPages);
 
       this.statTotal.set(res?.stats?.totalClasses ?? items.length);
       this.statStudents.set(res?.stats?.totalStudents ?? 0);
